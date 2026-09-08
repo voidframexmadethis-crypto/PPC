@@ -21,7 +21,6 @@ import {
   Check,
   LogIn,
   LogOut,
-  User as UserIcon,
   Loader2,
   Volume2,
   Upload,
@@ -31,6 +30,8 @@ import { useAuth } from "../context/AuthContext";
 import { useStore } from "../context/StoreContext";
 import AudioPlayer from "./AudioPlayer";
 import Uploader from "../pages/Uploader";
+import Sidebar from "./navigation/Sidebar";
+import Header from "./navigation/Header";
 
 // Restored exact audio file paths, stream variables, and music assets for working preview files
 export const LAYOUT_STREAM_VARIABLES = {
@@ -298,7 +299,6 @@ export default function Layout() {
     { to: "/beat-packs", icon: Package, label: "Beat Packs" },
     { to: "/top-tracks", icon: BarChart3, label: "Top Tracks" },
     { to: "/enterprise", icon: Radio, label: "Services" },
-    { to: "/profile/krypside", icon: UserIcon, label: "My Profile" },
     { to: "/settings", icon: Sparkles, label: "Settings" },
   ];
 
@@ -313,351 +313,34 @@ export default function Layout() {
       )}
 
       {/* Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-neutral-900/60 backdrop-blur-md border-r border-neutral-800 transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:block flex flex-col ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <div className="flex items-center justify-between h-16 px-4 border-b border-neutral-800 flex-shrink-0">
-          <div className="flex items-center space-x-2">
-            <Disc className="w-6 h-6 text-indigo-500" />
-            <span className="text-xl font-bold tracking-tight">Beat Store</span>
-          </div>
-          <button
-            className="lg:hidden text-neutral-400 hover:text-white"
-            onClick={() => setSidebarOpen(false)}
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-
-        <nav className="p-4 space-y-1 flex-1 overflow-y-auto">
-          {navItems.map((item) => (
-            item.label === "Services" ? (
-              <div key={item.to} className="relative group">
-                <button
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-neutral-400 hover:bg-neutral-800/50 hover:text-white`}
-                  onClick={() => navigate(item.to)}
-                >
-                  <item.icon className="w-5 h-5" />
-                  <span>{item.label}</span>
-                </button>
-                {/* Mega menu placeholder */}
-                <div className="absolute left-full top-0 ml-2 w-64 bg-neutral-900 border border-neutral-800 rounded-xl shadow-2xl p-4 hidden group-hover:block z-50">
-                    <div className="text-xs font-bold text-neutral-500 uppercase mb-2">Music Industry Services</div>
-                    <div className="space-y-2">
-                        <Link to="/enterprise" className="block text-sm text-neutral-300 hover:text-indigo-400">Join Network</Link>
-                        <Link to="/enterprise" className="block text-sm text-neutral-300 hover:text-indigo-400">Music Distribution</Link>
-                    </div>
-                </div>
-              </div>
-            ) : (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                `flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                  isActive
-                    ? "bg-indigo-500/10 text-indigo-400 font-medium"
-                    : "text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200"
-                }`
-              }
-              onClick={() => setSidebarOpen(false)}
-            >
-              <item.icon className="w-5 h-5" />
-              <span>{item.label}</span>
-            </NavLink>
-            )
-          ))}
-        </nav>
-
-        {/* Sidebar Profile & Socials Footer */}
-        <div className="p-4 border-t border-neutral-800 bg-neutral-950/20 backdrop-blur-md flex-shrink-0">
-          <div className="flex items-center space-x-3 mb-3">
-            <div
-              onClick={handleAdminAccess}
-              className="w-10 h-10 rounded-full bg-neutral-800 border border-neutral-700 overflow-hidden flex items-center justify-center flex-shrink-0 cursor-pointer hover:border-indigo-500 transition-colors"
-            >
-              {profileImg ? (
-                <img
-                  src={profileImg}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <span className="text-sm font-bold text-indigo-400">
-                  {profileName.substring(0, 2).toUpperCase()}
-                </span>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold truncate text-neutral-200">
-                {profileName}
-              </p>
-              <p className="text-xs text-neutral-500 truncate">{profileBio}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            {socials.fb && (
-              <a
-                href={
-                  socials.fb.startsWith("http")
-                    ? socials.fb
-                    : `https://${socials.fb}`
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-1.5 rounded bg-neutral-800 hover:bg-neutral-700 text-[#1877F2] hover:text-white transition-colors"
-                title="Facebook"
-              >
-                <Facebook size={14} />
-              </a>
-            )}
-            {socials.ig && (
-              <a
-                href={
-                  socials.ig.startsWith("http")
-                    ? socials.ig
-                    : `https://${socials.ig}`
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-1.5 rounded bg-neutral-800 hover:bg-neutral-700 text-[#E4405F] hover:text-white transition-colors"
-                title="Instagram"
-              >
-                <Instagram size={14} />
-              </a>
-            )}
-            {socials.yt && (
-              <a
-                href={
-                  socials.yt.startsWith("http")
-                    ? socials.yt
-                    : `https://${socials.yt}`
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-1.5 rounded bg-neutral-800 hover:bg-neutral-700 text-[#FF0000] hover:text-white transition-colors"
-                title="YouTube"
-              >
-                <Youtube size={14} />
-              </a>
-            )}
-            {socials.tw && (
-              <a
-                href={
-                  socials.tw.startsWith("http")
-                    ? socials.tw
-                    : `https://${socials.tw}`
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-1.5 rounded bg-neutral-800 hover:bg-neutral-700 text-[#1DA1F2] hover:text-white transition-colors"
-                title="Twitter / X"
-              >
-                <Twitter size={14} />
-              </a>
-            )}
-            {!socials.fb && !socials.ig && !socials.yt && !socials.tw && (
-              <span className="text-[10px] text-neutral-500 italic">
-                No social links connected
-              </span>
-            )}
-          </div>
-        </div>
-      </aside>
+      <Sidebar
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        navItems={navItems}
+        profileName={profileName}
+        profileBio={profileBio}
+        profileImg={profileImg}
+        socials={socials}
+        handleAdminAccess={handleAdminAccess}
+      />
 
       {/* Main content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        {/* Unified Topbar with Live Notifications & VIP status */}
-        <header className="flex items-center justify-between h-16 px-4 md:px-8 border-b border-neutral-800 bg-neutral-900/65 backdrop-blur-md sticky top-0 z-40 flex-shrink-0">
-          <div className="flex items-center space-x-4">
-            {/* Mobile menu trigger */}
-            <button
-              className="lg:hidden text-neutral-400 hover:text-white p-1 rounded hover:bg-neutral-800 transition-colors"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <Menu className="w-6 h-6" />
-            </button>
-
-            {/* Systems Core Online Status */}
-            <div className="flex items-center space-x-2 bg-neutral-950/40 px-3 py-1.5 rounded-full border border-neutral-800/80">
-              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-              <span className="text-[10px] text-neutral-400 font-bold font-mono tracking-wider">
-                KRYPSIDE AUDIO ENGINE
-              </span>
-            </div>
-
-            {/* Voice Tag / Greeting Button */}
-            <div className="hidden md:flex items-center gap-2">
-              <button
-                onClick={playVoiceGreeting}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-indigo-300 rounded-lg text-xs font-semibold transition-all shadow-sm"
-                title="Play Producer Voice Greeting & Tag"
-              >
-                <Volume2
-                  className={`w-3.5 h-3.5 ${isPlayingVoice ? "animate-bounce text-indigo-400" : ""}`}
-                />
-                <span>
-                  {isPlayingVoice ? "Voice Tag Active..." : "Voice Tag"}
-                </span>
-              </button>
-
-              <button
-                onClick={() => {
-                  localStorage.setItem("KRYPSIDE_ADMIN_AUTH", "true");
-                  setIsUploaderOverlayOpen(true);
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-sm"
-                title="Open Accessibility Beat Uploader Interface"
-              >
-                <Upload className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Upload Voice Tag</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-4 relative">
-            {/* Auth Button */}
-            {user ? (
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={logout}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 rounded-lg text-xs font-bold transition-all"
-                  title="Logout"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Logout</span>
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={handleSignIn}
-                disabled={signingIn}
-                className="flex items-center gap-2 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-neutral-800 disabled:text-neutral-500 text-white rounded-lg text-xs font-bold transition-all shadow-lg min-w-[140px] justify-center"
-              >
-                {signingIn ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <LogIn className="w-3.5 h-3.5" />
-                )}
-                <span>{signingIn ? "Signing in..." : "Producer Sign In"}</span>
-              </button>
-            )}
-
-            {/* VIP Status Indicator */}
-            {isSubscribed ? (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full text-xs font-semibold">
-                <Check className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">ARTIST VIP ACTIVATED</span>
-                <span className="sm:hidden">VIP</span>
-              </div>
-            ) : (
-              <button
-                onClick={() => {
-                  const footerSub = document.getElementById(
-                    "vip-newsletter-footer",
-                  );
-                  if (footerSub) {
-                    footerSub.scrollIntoView({ behavior: "smooth" });
-                  }
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 rounded-full text-xs font-semibold transition-colors"
-              >
-                <Sparkles className="w-3.5 h-3.5 animate-pulse text-indigo-400" />
-                <span className="hidden sm:inline font-bold">
-                  JOIN ARTIST VIP
-                </span>
-                <span className="sm:hidden font-bold">JOIN VIP</span>
-              </button>
-            )}
-
-            {/* Notifications Dropdown Bell */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setNotifDropdownOpen(!notifDropdownOpen);
-                  if (!notifDropdownOpen) {
-                    setHasUnreadNotif(false);
-                    localStorage.setItem(
-                      "KRYPSIDE_LAST_NOTIF_READ",
-                      Date.now().toString(),
-                    );
-                  }
-                }}
-                className="relative p-2 rounded-full text-neutral-400 hover:text-white hover:bg-neutral-800/80 transition-all focus:outline-none"
-                title="Recent Beat Drops"
-              >
-                <Bell
-                  className={`w-5 h-5 ${hasUnreadNotif ? "animate-bounce text-indigo-400" : ""}`}
-                />
-                {hasUnreadNotif && (
-                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-indigo-500 rounded-full border-2 border-neutral-900" />
-                )}
-              </button>
-
-              {/* Dropdown panel */}
-              {notifDropdownOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40 cursor-default"
-                    onClick={() => setNotifDropdownOpen(false)}
-                  />
-                  <div className="absolute right-0 mt-3 w-80 md:w-96 bg-neutral-900 border border-neutral-800 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-3 duration-200">
-                    <div className="p-4 border-b border-neutral-800 bg-neutral-950/40 flex justify-between items-center">
-                      <span className="text-sm font-bold text-white flex items-center gap-1.5">
-                        <Bell
-                          size={16}
-                          className="text-indigo-400 animate-pulse"
-                        />{" "}
-                        Live Beat Drops
-                      </span>
-                      <button
-                        onClick={() => setNotifDropdownOpen(false)}
-                        className="text-xs text-neutral-500 hover:text-neutral-300 font-semibold"
-                      >
-                        Dismiss
-                      </button>
-                    </div>
-                    <div className="max-h-[320px] overflow-y-auto divide-y divide-neutral-800/50">
-                      {notifications.length === 0 ? (
-                        <div className="p-6 text-center text-neutral-500 text-xs italic">
-                          No new beat drop notifications recorded yet.
-                          <br />
-                          We'll notify you here the millisecond a beat drops!
-                        </div>
-                      ) : (
-                        notifications.map((notif) => (
-                          <div
-                            key={notif.id}
-                            className="p-4 hover:bg-neutral-800/30 transition-colors"
-                          >
-                            <div className="flex items-start gap-2.5">
-                              <span className="text-base">🔥</span>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-bold text-neutral-200 leading-snug">
-                                  {notif.title}
-                                </p>
-                                <p className="text-xs text-neutral-400 mt-1.5 leading-normal">
-                                  {notif.body}
-                                </p>
-                                <span className="text-[10px] text-neutral-600 mt-2 block font-mono">
-                                  {new Date(notif.sentAt).toLocaleString()}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </header>
+        <Header
+          setSidebarOpen={setSidebarOpen}
+          playVoiceGreeting={playVoiceGreeting}
+          isPlayingVoice={isPlayingVoice}
+          setIsUploaderOverlayOpen={setIsUploaderOverlayOpen}
+          user={user}
+          logout={logout}
+          handleSignIn={handleSignIn}
+          signingIn={signingIn}
+          isSubscribed={isSubscribed}
+          notifDropdownOpen={notifDropdownOpen}
+          setNotifDropdownOpen={setNotifDropdownOpen}
+          hasUnreadNotif={hasUnreadNotif}
+          notifications={notifications}
+        />
 
         {/* Page content */}
         <div className="flex-1 overflow-auto p-4 md:p-8 flex flex-col justify-between">

@@ -5,7 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import { AudioPlayerProvider } from './context/AudioPlayerContext';
 import { AnalyticsTracker } from './components/AnalyticsTracker';
 import Layout from './components/Layout';
-import Home from './pages/Home';
+import DashboardProfile from './pages/DashboardProfile';
 import Videos from './pages/Videos';
 import Player from './pages/Player';
 import Storefront from './pages/Storefront';
@@ -82,7 +82,7 @@ export default function App() {
             <BrowserRouter>
             <Routes>
               <Route path="/" element={<Layout />}>
-                <Route index element={<Home />} />
+                <Route index element={<DashboardProfile />} />
                 <Route path="videos" element={<Videos />} />
                 <Route path="player" element={<Player />} />
                 <Route path="player/:track" element={<Player />} />

@@ -3,8 +3,12 @@ import { Navigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { useAuth } from '../context/AuthContext';
 import { auth } from '../lib/firebase';
-import { Lock, BarChart3, DollarSign, TrendingUp, PlayCircle, Share2, ThumbsUp, ThumbsDown, Music, UploadCloud, Download, Eye, Users, Mail, Bell, RefreshCw, Send, CheckCircle2, Volume2, Upload, LogOut, Disc } from 'lucide-react';
+import { Lock, BarChart3, DollarSign, TrendingUp, PlayCircle, Share2, ThumbsUp, ThumbsDown, Music, UploadCloud, Download, Eye, Users, Mail, Bell, RefreshCw, Send, CheckCircle2, Volume2, Upload, LogOut, Disc, FileText, Trash2, Tag, Award } from 'lucide-react';
 import Uploader from './Uploader';
+import BeatPackUploader from '../components/BeatPackUploader';
+import { PlayerManagement } from '../components/admin/PlayerManagement';
+import { FlashSaleStudio } from '../components/admin/FlashSaleStudio';
+import { PlaqueStudio } from '../components/admin/PlaqueStudio';
 
 export default function Admin() {
   const { state, updateProfile, resetAnalytics } = useStore();
@@ -44,7 +48,7 @@ export default function Admin() {
     return <Navigate to="/" replace />;
   }
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'subscribers' | 'voicetag' | 'uploader' | 'plaque'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'subscribers' | 'voicetag' | 'uploader' | 'packUploader' | 'plaque' | 'playerManagement' | 'flashSale'>('dashboard');
   const [subscribers, setSubscribers] = useState<{ email: string; name: string; subscribedAt: string; notifyOnBeatDrop: boolean }[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [notifications, setNotifications] = useState<{ id: string; title: string; body: string; sentAt: string; beatTitle?: string }[]>([]);
@@ -101,49 +105,40 @@ export default function Admin() {
           <p className="text-neutral-400 mt-2">Manage your catalog and view analytics.</p>
         </div>
         <div className="flex items-center gap-4">
-          <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-1 flex">
+      <nav className="flex flex-wrap gap-2 mb-8 p-1 bg-neutral-950 border border-neutral-800 rounded-2xl w-fit">
+        {[
+          { id: 'dashboard', label: 'Command Center', icon: BarChart3 },
+          { id: 'subscribers', label: 'Roster', icon: Users },
+          { id: 'voicetag', label: 'Tag', icon: Volume2 },
+          { id: 'uploader', label: 'Upload', icon: UploadCloud },
+          { id: 'packUploader', label: 'Beat Packs', icon: FileText },
+          { id: 'playerManagement', label: 'Player Mgt', icon: Trash2 },
+          { id: 'flashSale', label: 'Flash Sale', icon: Tag },
+          { id: 'plaque', label: 'Plaques', icon: Award },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          return (
             <button 
-              onClick={() => setActiveTab('dashboard')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'dashboard' ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'}`}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center gap-2 ${
+                activeTab === tab.id 
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' 
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+              }`}
             >
-              <BarChart3 className="w-4 h-4" />
-              Analytics
+              <Icon className="w-4 h-4" />
+              {tab.label}
             </button>
-            <button 
-              onClick={() => setActiveTab('subscribers')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'subscribers' ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'}`}
-            >
-              <Users className="w-4 h-4" />
-              Subscribers
-            </button>
-            <button 
-              onClick={() => setActiveTab('voicetag')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'voicetag' ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'}`}
-            >
-              <Volume2 className="w-4 h-4" />
-              Voice Tag
-            </button>
-            <button 
-              onClick={() => setActiveTab('uploader')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'uploader' ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'}`}
-            >
-              <UploadCloud className="w-4 h-4" />
-              Upload Beat
-            </button>
-            <button 
-              onClick={() => setActiveTab('plaque')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'plaque' ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'}`}
-            >
-              <Disc className="w-4 h-4" />
-              Plaques
-            </button>
-          </div>
+          )
+        })}
+      </nav>
           <button 
             onClick={() => {
               localStorage.removeItem('KRYPSIDE_ADMIN_AUTH');
               window.location.href = '/admin-portal';
             }}
-            className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 text-red-400 hover:text-red-300"
+            className="px-6 py-3 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-xl text-sm font-bold uppercase tracking-widest transition-all flex items-center gap-2 text-red-400 hover:text-red-300"
           >
             <Lock className="w-4 h-4" />
             Lock
@@ -232,6 +227,10 @@ export default function Admin() {
               </div>
             )}
           </div>
+        </div>
+      ) : activeTab === 'packUploader' ? (
+        <div className="animate-in fade-in duration-300">
+           <BeatPackUploader />
         </div>
       ) : activeTab === 'plaque' ? (
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-8 max-w-2xl mx-auto shadow-xl">
@@ -322,60 +321,76 @@ export default function Admin() {
           </div>
         </div>
       ) : activeTab === 'dashboard' ? (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-4 mb-8">
-            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-2xl -mr-5 -mt-5"></div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-neutral-400 font-medium text-sm lg:text-base">Site Visits</h3>
-                <Eye className="w-5 h-5 text-indigo-400 animate-pulse" />
-              </div>
-              <div className="text-3xl lg:text-4xl font-bold text-white font-mono">{realAnalytics?.totalVisits || 0}</div>
-              <div className="text-[10px] text-indigo-400 font-semibold uppercase tracking-wider mt-1 flex items-center justify-between gap-1">
-                <div className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-ping"></span> Real-Time Traffic
+        <AdminDashboardOverview analytics={{ totalEarnings: 0, totalPlays: state.analytics.totalPlays }} state={state} />
+      ) : activeTab === 'playerManagement' ? (
+        <PlayerManagement />
+      ) : activeTab === 'flashSale' ? (
+        <FlashSaleStudio />
+      ) : activeTab === 'plaque' ? (
+        <PlaqueStudio />
+      ) : activeTab === 'subscribers' ? (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          {/* Header Row */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-neutral-900 border border-neutral-800 p-4 rounded-xl gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Users className="w-5 h-5 text-indigo-400" />
+                Subscriber Analytics
+              </h2>
+              <p className="text-xs text-neutral-400 mt-1">Real-time newsletter metrics & artist databases.</p>
+            </div>
+            
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search artists..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-neutral-950 border border-neutral-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-64"
+              />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-6">
+          <Uploader />
+        </div>
+      )}
+
+            <div className="bg-neutral-950/80 border border-neutral-800 rounded-3xl p-6 relative overflow-hidden shadow-xl hover:border-blue-500/50 transition-all">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
+              <div className="flex items-center justify-between mb-4 relative z-10">
+                <h3 className="text-neutral-500 font-bold uppercase tracking-widest text-[10px]">Unique Visitors</h3>
+                <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+                    <Users className="w-4 h-4" />
                 </div>
-                {user?.email === 'glennbucky@gmail.com' && (
-                  <button 
-                    onClick={() => {
-                      resetAnalytics('siteVisits');
-                      resetAnalytics('uniqueVisitors');
-                    }}
-                    className="text-[9px] text-neutral-600 hover:text-indigo-400 transition-colors flex items-center gap-1"
-                    title="Reset Traffic Stats"
-                  >
-                    <RefreshCw size={8} /> Clear
-                  </button>
-                )}
               </div>
+              <div className="text-4xl font-black text-white font-mono tracking-tighter relative z-10">{realAnalytics?.uniqueVisitors || 0}</div>
+              <div className="text-[9px] text-blue-400 font-bold uppercase tracking-widest mt-2 relative z-10">Verified Unique</div>
             </div>
 
-            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl -mr-5 -mt-5"></div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-neutral-400 font-medium text-sm lg:text-base">Unique Visitors</h3>
-                <Users className="w-5 h-5 text-blue-400" />
+            <div className="bg-neutral-950/80 border border-neutral-800 rounded-3xl p-6 relative overflow-hidden shadow-xl hover:border-emerald-500/50 transition-all">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
+              <div className="flex items-center justify-between mb-4 relative z-10">
+                <h3 className="text-neutral-500 font-bold uppercase tracking-widest text-[10px]">Total Earnings</h3>
+                <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
+                    <DollarSign className="w-4 h-4" />
+                </div>
               </div>
-              <div className="text-3xl lg:text-4xl font-bold text-white font-mono">{realAnalytics?.uniqueVisitors || 0}</div>
-              <div className="text-[10px] text-blue-400 font-semibold uppercase tracking-wider mt-1">Verified Unique devices</div>
+              <div className="text-4xl font-black text-white font-mono tracking-tighter relative z-10">${totalEarnings.toFixed(2)}</div>
+              <div className="text-[9px] text-emerald-400 font-bold uppercase tracking-widest mt-2 relative z-10">Direct Revenue</div>
             </div>
 
-            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-neutral-400 font-medium text-sm lg:text-base">Total Earnings</h3>
-                <DollarSign className="w-5 h-5 text-green-400" />
+            <div className="bg-neutral-950/80 border border-neutral-800 rounded-3xl p-6 relative overflow-hidden shadow-xl hover:border-indigo-500/50 transition-all">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
+              <div className="flex items-center justify-between mb-4 relative z-10">
+                <h3 className="text-neutral-500 font-bold uppercase tracking-widest text-[10px]">Total Plays</h3>
+                <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
+                    <PlayCircle className="w-4 h-4" />
+                </div>
               </div>
-              <div className="text-3xl lg:text-4xl font-bold text-white font-mono">${totalEarnings.toFixed(2)}</div>
-              <div className="text-[10px] text-green-400 font-semibold uppercase tracking-wider mt-1">Direct Gross Revenue</div>
-            </div>
-
-            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-neutral-400 font-medium text-sm lg:text-base">Total Plays</h3>
-                <PlayCircle className="w-5 h-5 text-indigo-400" />
-              </div>
-              <div className="text-3xl lg:text-4xl font-bold text-white font-mono">{state.analytics.totalPlays}</div>
-              <div className="text-[10px] text-indigo-400 font-semibold uppercase tracking-wider mt-1">Audio Stream Events</div>
+              <div className="text-4xl font-black text-white font-mono tracking-tighter relative z-10">{state.analytics.totalPlays}</div>
+              <div className="text-[9px] text-indigo-400 font-bold uppercase tracking-widest mt-2 relative z-10">Stream Events</div>
             </div>
 
             <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
@@ -547,56 +562,57 @@ export default function Admin() {
             </div>
           </div>
 
-          <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden mb-8">
-            <div className="px-6 py-4 border-b border-neutral-800">
-              <h2 className="text-xl font-semibold flex items-center">
-                <TrendingUp className="w-5 h-5 mr-2 text-indigo-400" />
+          <div className="bg-neutral-900/40 border border-neutral-800/60 rounded-3xl overflow-hidden shadow-sm">
+            <div className="px-8 py-6 border-b border-neutral-800/60 bg-neutral-900/50">
+              <h2 className="text-xl font-bold flex items-center gap-3">
+                <TrendingUp className="w-5 h-5 text-indigo-400" />
                 Track Performance
               </h2>
             </div>
             
             {state.beats.length === 0 ? (
-              <div className="p-8 text-center text-neutral-500">
-                No beats uploaded yet.
+              <div className="p-16 text-center text-neutral-500">
+                <Music className="w-12 h-12 mx-auto text-neutral-700 mb-4" />
+                <p className="text-sm font-medium">No beats uploaded yet.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="bg-neutral-950/50">
-                      <th className="px-6 py-4 font-medium text-neutral-400 text-sm">Track</th>
-                      <th className="px-6 py-4 font-medium text-neutral-400 text-sm text-center">Plays</th>
-                      <th className="px-6 py-4 font-medium text-neutral-400 text-sm text-center">Likes</th>
-                      <th className="px-6 py-4 font-medium text-neutral-400 text-sm text-center">Dislikes</th>
-                      <th className="px-6 py-4 font-medium text-neutral-400 text-sm text-center">Shares</th>
-                      <th className="px-6 py-4 font-medium text-neutral-400 text-sm text-center">Downloads</th>
-                      <th className="px-6 py-4 font-medium text-neutral-400 text-sm text-center">Earnings</th>
+                    <tr className="bg-neutral-950/40 text-neutral-400 text-xs font-bold uppercase tracking-widest">
+                      <th className="px-8 py-5">Track</th>
+                      <th className="px-6 py-5 text-center">Plays</th>
+                      <th className="px-6 py-5 text-center">Likes</th>
+                      <th className="px-6 py-5 text-center">Dislikes</th>
+                      <th className="px-6 py-5 text-center">Shares</th>
+                      <th className="px-6 py-5 text-center">Downloads</th>
+                      <th className="px-6 py-5 text-center">Earnings</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-neutral-800">
+                  <tbody className="divide-y divide-neutral-800/60">
                     {state.beats.map((beat, idx) => (
-                      <tr key={beat.id ? `${beat.id}-${idx}` : idx} className="hover:bg-neutral-800/50 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center">
-                            <div className="w-10 h-10 rounded bg-neutral-800 overflow-hidden mr-3 flex-shrink-0">
+                      <tr key={beat.id ? `${beat.id}-${idx}` : idx} className="hover:bg-neutral-800/30 transition-colors">
+                        <td className="px-8 py-5">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-xl bg-neutral-800 overflow-hidden shadow-inner flex-shrink-0 border border-neutral-700">
                               {beat.coverArtUrl ? (
                                 <img src={beat.coverArtUrl} alt={beat.title} className="w-full h-full object-cover" />
                               ) : (
-                                <div className="w-full h-full flex items-center justify-center text-neutral-500"><Music size={16} /></div>
+                                <div className="w-full h-full flex items-center justify-center text-neutral-500"><Music size={20} /></div>
                               )}
                             </div>
                             <div>
-                              <div className="font-medium text-white">{beat.title}</div>
-                              <div className="text-xs text-neutral-500">{beat.producer}</div>
+                              <div className="font-bold text-white text-base">{beat.title}</div>
+                              <div className="text-xs text-neutral-400 uppercase tracking-widest font-bold mt-0.5">{beat.producer}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-center font-mono text-indigo-400">{beat.plays || 0}</td>
-                        <td className="px-6 py-4 text-center font-mono text-emerald-400">{beat.likes || 0}</td>
-                        <td className="px-6 py-4 text-center font-mono text-red-400">{beat.dislikes || 0}</td>
-                        <td className="px-6 py-4 text-center font-mono text-blue-400">{beat.shares || 0}</td>
-                        <td className="px-6 py-4 text-center font-mono text-purple-400">{beat.downloads || 0}</td>
-                        <td className="px-6 py-4 text-center font-mono text-green-400">${(beat.earnings || 0).toFixed(2)}</td>
+                        <td className="px-6 py-5 text-center font-mono font-bold text-indigo-400 text-sm">{beat.plays || 0}</td>
+                        <td className="px-6 py-5 text-center font-mono font-bold text-emerald-400 text-sm">{beat.likes || 0}</td>
+                        <td className="px-6 py-5 text-center font-mono font-bold text-red-400 text-sm">{beat.dislikes || 0}</td>
+                        <td className="px-6 py-5 text-center font-mono font-bold text-blue-400 text-sm">{beat.shares || 0}</td>
+                        <td className="px-6 py-5 text-center font-mono font-bold text-purple-400 text-sm">{beat.downloads || 0}</td>
+                        <td className="px-6 py-5 text-center font-mono font-bold text-emerald-300 text-sm">${(beat.earnings || 0).toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -604,8 +620,7 @@ export default function Admin() {
               </div>
             )}
           </div>
-        </>
-      ) : activeTab === 'subscribers' ? (
+        ) : activeTab === 'subscribers' ? (
         <div className="space-y-6 animate-in fade-in duration-300">
           {/* Header Row */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-neutral-900 border border-neutral-800 p-4 rounded-xl gap-4">
@@ -671,52 +686,51 @@ export default function Admin() {
 
           {/* Main Grid: Roster & Log */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column: Subscriber Roster */}
-            <div className="lg:col-span-2 bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden flex flex-col shadow-lg">
-              <div className="px-5 py-4 border-b border-neutral-800 flex justify-between items-center bg-neutral-950/25">
-                <h3 className="font-bold text-white flex items-center gap-2 text-sm md:text-base">
-                  <Mail className="w-4.5 h-4.5 text-indigo-400" />
+            <div className="lg:col-span-2 bg-neutral-900/40 border border-neutral-800/60 rounded-3xl overflow-hidden shadow-sm flex flex-col">
+              <div className="px-8 py-6 border-b border-neutral-800/60 bg-neutral-900/50 flex justify-between items-center">
+                <h3 className="font-bold text-white flex items-center gap-3 text-lg">
+                  <Mail className="w-5 h-5 text-indigo-400" />
                   Artist VIP Roster ({filteredSubscribers.length})
                 </h3>
               </div>
 
               {subscribers.length === 0 ? (
-                <div className="p-12 text-center text-neutral-500">
-                  <Mail className="w-8 h-8 mx-auto text-neutral-700 mb-2" />
-                  <p className="text-xs italic">No subscribers registered yet.</p>
+                <div className="p-16 text-center text-neutral-500">
+                  <Mail className="w-12 h-12 mx-auto text-neutral-700 mb-4" />
+                  <p className="text-sm font-medium italic">No subscribers registered yet.</p>
                 </div>
               ) : filteredSubscribers.length === 0 ? (
-                <div className="p-12 text-center text-neutral-500">
-                  <p className="text-xs italic">No matching subscribers found.</p>
+                <div className="p-16 text-center text-neutral-500">
+                  <p className="text-sm font-medium italic">No matching subscribers found.</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-neutral-950/40 text-neutral-400 text-[11px] uppercase tracking-wider font-bold border-b border-neutral-800">
-                        <th className="px-5 py-3">Artist Stage Name</th>
-                        <th className="px-5 py-3">Email Address</th>
-                        <th className="px-5 py-3 text-center">Beat Alerts</th>
-                        <th className="px-5 py-3 text-right">Subscribed At</th>
+                      <tr className="bg-neutral-950/40 text-neutral-400 text-xs font-bold uppercase tracking-widest border-b border-neutral-800/60">
+                        <th className="px-8 py-5">Artist Stage Name</th>
+                        <th className="px-8 py-5">Email Address</th>
+                        <th className="px-8 py-5 text-center">Beat Alerts</th>
+                        <th className="px-8 py-5 text-right">Subscribed At</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-neutral-800/65">
+                    <tbody className="divide-y divide-neutral-800/60">
                       {filteredSubscribers.map((sub, idx) => (
-                        <tr key={idx} className="hover:bg-neutral-800/20 transition-colors text-xs text-white">
-                          <td className="px-5 py-3.5 font-bold">{sub.name}</td>
-                          <td className="px-5 py-3.5 text-neutral-400 font-mono">{sub.email}</td>
-                          <td className="px-5 py-3.5 text-center">
+                        <tr key={idx} className="hover:bg-neutral-800/30 transition-colors text-sm text-white">
+                          <td className="px-8 py-5 font-bold">{sub.name}</td>
+                          <td className="px-8 py-5 text-neutral-400 font-mono">{sub.email}</td>
+                          <td className="px-8 py-5 text-center">
                             {sub.notifyOnBeatDrop ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full font-semibold text-[10px]">
-                                <Bell className="w-2.5 h-2.5" /> Opted In
+                              <span className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full font-bold text-xs uppercase tracking-widest">
+                                <Bell className="w-3 h-3" /> Opted In
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-neutral-800 text-neutral-500 rounded-full text-[10px]">
+                              <span className="inline-flex items-center gap-2 px-3 py-1 bg-neutral-800/50 text-neutral-500 rounded-full text-xs uppercase tracking-widest">
                                 Off
                               </span>
                             )}
                           </td>
-                          <td className="px-5 py-3.5 text-right text-neutral-500 font-mono">
+                          <td className="px-8 py-5 text-right text-neutral-500 font-mono text-xs">
                             {new Date(sub.subscribedAt).toLocaleString()}
                           </td>
                         </tr>
