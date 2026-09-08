@@ -12,8 +12,10 @@ import { Beat, License, Tier, SocialUnlock } from '../types';
 import { analyzeAudioFile, AudioAnalysisResult } from '../lib/audioAnalyzer';
 import TrackPlayer from './TrackPlayer';
 import LiveSocialUnlock from './LiveSocialUnlock';
+import { StepWizard } from './uploader/StepWizard';
+import { FileStep } from './uploader/FileStep';
 
-const steps = ['Files & Artwork', 'Basic Info', 'Metadata', 'Pricing', 'Advanced Settings', 'Marketing', 'Review'];
+const steps = ['Files', 'Beat Details', 'Artwork', 'Metadata', 'Licensing', 'Store Preview', 'Review & Publish'];
 
 const FilePreview = ({ file }: { file: File }) => {
   const [url, setUrl] = useState<string>('');
@@ -675,253 +677,24 @@ const BeatUploader = React.memo(() => {
         
         {/* STEP 1: Files & Artwork */}
         {currentStep === 0 && (
-          <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
-            {analysisNotice && (
-              <div className="bg-indigo-950/80 border border-indigo-500/50 rounded-xl p-4 flex items-center gap-3 text-indigo-200 text-sm shadow-lg animate-in fade-in">
-                {isAnalyzing ? <Loader2 className="w-5 h-5 animate-spin text-indigo-400 flex-shrink-0" /> : <Sparkles className="w-5 h-5 text-indigo-400 flex-shrink-0" />}
-                <div>
-                  <p className="font-semibold text-white">AI Audio Intelligence</p>
-                  <p className="text-xs text-indigo-200 mt-0.5">{analysisNotice}</p>
-                </div>
-              </div>
-            )}
-            <div>
-              <h2 className="text-xl font-semibold mb-4 border-b border-neutral-800 pb-2">Audio Files</h2>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {/* TAGGED MP3 */}
-                <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-4 flex flex-col relative group">
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Tagged MP3</label>
-                    <span className="text-[10px] text-indigo-400 font-medium">Public Stream</span>
-                  </div>
-                  <div 
-                    className="flex-1 border border-dashed border-neutral-700 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-900/50 transition-colors"
-                    onClick={() => document.getElementById('mp3-upload')?.click()}
-                  >
-                    {formData.audioUrl ? (
-                      <div className="text-center w-full">
-                        <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto mb-1" />
-                        <p className="text-[10px] text-neutral-300 truncate w-full px-2">{formData.audioUrl.split('/').pop()}</p>
-                      </div>
-                    ) : (
-                      <>
-                        <Music className="w-5 h-5 text-neutral-500 mb-1" />
-                        <p className="text-[10px] text-neutral-500">Upload Tagged MP3</p>
-                      </>
-                    )}
-                    <input id="mp3-upload" type="file" accept="audio/mpeg,audio/mp3" className="hidden" onChange={(e) => handleFileUpload(e.target.files, 'audio', 'tagged')} />
-                  </div>
-                  {formData.untaggedWavUrl && formData.voiceTagUrl && (
-                    <button 
-                      onClick={async () => {
-                        setIsUploading(true);
-                        try {
-                          const res = await fetch('/api/audio/watermark', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              rawBeatUrl: formData.untaggedWavUrl,
-                              voiceTagUrl: formData.voiceTagUrl,
-                              outputFileName: `tagged_${formData.title.replace(/\s+/g, '_')}_${Date.now()}.mp3`
-                            })
-                          });
-                          const data = await res.json();
-                          if (data.success) {
-                            setFormData(prev => ({ ...prev, audioUrl: data.url }));
-                          }
-                        } catch (err) {
-                          console.error("Watermarking failed:", err);
-                        } finally {
-                          setIsUploading(false);
-                        }
-                      }}
-                      className="absolute bottom-12 left-1/2 -translate-x-1/2 bg-indigo-600 hover:bg-indigo-500 text-white text-[9px] font-bold py-1 px-3 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
-                    >
-                      AI GENERATE TAGGED
-                    </button>
-                  )}
-                  <input
-                    type="url"
-                    name="audioUrl"
-                    value={formData.audioUrl}
-                    onChange={handleChange}
-                    placeholder="Direct MP3 Link"
-                    className="mt-2 w-full bg-neutral-900 border border-neutral-800 rounded px-2 py-1.5 text-[10px] text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
-                </div>
+  <div className="space-y-6 animate-in fade-in duration-300">
+    <FileStep 
+        onFilesSelected={(files) => handleFileUpload(files, 'audio')} 
+        isUploading={isUploading}
+        uploadedFiles={uploadedFiles}
+    />
+  </div>
+)}
 
-                {/* UNTAGGED WAV */}
-                <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-4 flex flex-col">
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Untagged WAV</label>
-                    <span className="text-[10px] text-emerald-400 font-medium">For Buyers</span>
-                  </div>
-                  <div 
-                    className="flex-1 border border-dashed border-neutral-700 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-900/50 transition-colors"
-                    onClick={() => document.getElementById('wav-upload')?.click()}
-                  >
-                    {formData.untaggedWavUrl ? (
-                      <div className="text-center w-full">
-                        <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto mb-1" />
-                        <p className="text-[10px] text-neutral-300 truncate w-full px-2">{formData.untaggedWavUrl.split('/').pop()}</p>
-                      </div>
-                    ) : (
-                      <>
-                        <Music className="w-5 h-5 text-neutral-500 mb-1" />
-                        <p className="text-[10px] text-neutral-500">Upload Untagged WAV</p>
-                      </>
-                    )}
-                    <input id="wav-upload" type="file" accept="audio/wav,audio/x-wav" className="hidden" onChange={(e) => handleFileUpload(e.target.files, 'audio', 'untagged')} />
-                  </div>
-                  <input
-                    type="url"
-                    name="untaggedWavUrl"
-                    value={formData.untaggedWavUrl}
-                    onChange={handleChange}
-                    placeholder="Direct WAV Link"
-                    className="mt-2 w-full bg-neutral-900 border border-neutral-800 rounded px-2 py-1.5 text-[10px] text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
-                </div>
 
-                {/* STEMS ZIP */}
-                <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-4 flex flex-col">
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Stems ZIP</label>
-                    <span className="text-[10px] text-amber-400 font-medium">Trackouts</span>
-                  </div>
-                  <div 
-                    className="flex-1 border border-dashed border-neutral-700 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-900/50 transition-colors"
-                    onClick={() => document.getElementById('stems-upload')?.click()}
-                  >
-                    {formData.stemsZipUrl ? (
-                      <div className="text-center w-full">
-                        <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto mb-1" />
-                        <p className="text-[10px] text-neutral-300 truncate w-full px-2">{formData.stemsZipUrl.split('/').pop()}</p>
-                      </div>
-                    ) : (
-                      <>
-                        <Upload className="w-5 h-5 text-neutral-500 mb-1" />
-                        <p className="text-[10px] text-neutral-500">Upload Stems ZIP</p>
-                      </>
-                    )}
-                    <input id="stems-upload" type="file" accept=".zip,.rar,.7z" className="hidden" onChange={(e) => handleFileUpload(e.target.files, 'audio', 'stems')} />
-                  </div>
-                  <input
-                    type="url"
-                    name="stemsZipUrl"
-                    value={formData.stemsZipUrl}
-                    onChange={handleChange}
-                    placeholder="Direct ZIP Link"
-                    className="mt-2 w-full bg-neutral-900 border border-neutral-800 rounded px-2 py-1.5 text-[10px] text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
-                </div>
 
-                {/* PRODUCER VOICE TAG */}
-                <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-4 flex flex-col">
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Voice Tag</label>
-                    <span className="text-[10px] text-indigo-400 font-medium">Protection</span>
-                  </div>
-                  <div 
-                    className="flex-1 border border-dashed border-neutral-700 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-900/50 transition-colors"
-                    onClick={() => document.getElementById('tag-upload')?.click()}
-                  >
-                    {formData.voiceTagUrl ? (
-                      <div className="text-center w-full">
-                        <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto mb-1" />
-                        <p className="text-[10px] text-neutral-300 truncate w-full px-2">{formData.voiceTagUrl.split('/').pop()}</p>
-                      </div>
-                    ) : (
-                      <>
-                        <Music className="w-5 h-5 text-neutral-500 mb-1" />
-                        <p className="text-[10px] text-neutral-500">Upload Tag</p>
-                      </>
-                    )}
-                    <input id="tag-upload" type="file" accept="audio/*" className="hidden" onChange={(e) => handleFileUpload(e.target.files, 'audio', 'tag')} />
-                  </div>
-                  <input
-                    type="url"
-                    name="voiceTagUrl"
-                    value={formData.voiceTagUrl}
-                    onChange={handleChange}
-                    placeholder="Direct Tag Link"
-                    className="mt-2 w-full bg-neutral-900 border border-neutral-800 rounded px-2 py-1.5 text-[10px] text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
 
-              {isUploading && (
-                <div className="mt-4 bg-indigo-500/10 border border-indigo-500/20 rounded-lg p-3 flex items-center gap-3">
-                  <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
-                  <div className="flex-1">
-                    <div className="flex justify-between text-[10px] text-indigo-300 mb-1">
-                      <span>Syncing files to {isDevMode ? 'local registry' : 'cloud storage'}...</span>
-                      <span>{Math.round((Object.values(uploadProgress) as number[]).reduce((a: number, b: number) => a + b, 0) / (Object.keys(uploadProgress).length || 1))}%</span>
-                    </div>
-                    <div className="w-full h-1 bg-neutral-800 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-indigo-500 transition-all duration-300" 
-                        style={{ width: `${(Object.values(uploadProgress) as number[]).reduce((a: number, b: number) => a + b, 0) / (Object.keys(uploadProgress).length || 1)}%` }} 
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
 
-            <div>
-              <h2 className="text-xl font-semibold mb-4 border-b border-neutral-800 pb-2">Artwork</h2>
-              <div className="flex items-center space-x-6">
-                <div 
-                  className={`w-32 h-32 bg-neutral-950 rounded-xl border-2 border-dashed flex flex-col items-center justify-center text-neutral-500 flex-shrink-0 overflow-hidden cursor-pointer transition-colors ${
-                    isDragging ? 'border-indigo-500 bg-indigo-500/10' : 'border-neutral-700 hover:border-neutral-500'
-                  }`}
-                  onClick={() => document.getElementById('image-upload-input')?.click()}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, 'image')}
-                >
-                  {formData.coverArtUrl ? (
-                    <img src={formData.coverArtUrl} alt="Cover Preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <>
-                      <ImageIcon className="w-8 h-8 mb-2 text-neutral-400" />
-                      <span className="text-[10px] text-neutral-400">Click or Drop Image</span>
-                    </>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-neutral-400 mb-1">Cover Art URL</label>
-                  <input
-                    type="url"
-                    name="coverArtUrl"
-                    value={formData.coverArtUrl}
-                    onChange={handleChange}
-                    className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                  <div className="mt-4 flex gap-2">
-                     <button type="button"
-                       className="px-3 py-1.5 bg-neutral-800 text-xs font-medium rounded-md hover:bg-neutral-700 flex items-center"
-                       onClick={() => document.getElementById('image-upload-input')?.click()}
-                     >
-                       <Upload className="w-3 h-3 mr-1" /> Upload Image
-                     </button>
-                     <input
-                       id="image-upload-input"
-                       type="file"
-                       accept="image/*,*"
-                       className="hidden"
-                       onChange={(e) => handleFileUpload(e.target.files, 'image')}
-                     />
-                     <button type="button" className="px-3 py-1.5 bg-indigo-500/10 text-indigo-400 text-xs font-medium rounded-md border border-indigo-500/20 flex items-center">
-                       <Sparkles className="w-3 h-3 mr-1" /> AI Generate Cover
-                     </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+
+
+
+
+  
 
         {/* STEP 2: Basic Info */}
         {currentStep === 1 && (

@@ -10,11 +10,15 @@ interface AudioPlayerContextType {
   currentTime: number;
   duration: number;
   volume: number;
+  loading: boolean;
+  error: string | null;
   playTrack: (track: Beat) => void;
   pauseTrack: () => void;
   togglePlay: () => void;
   seek: (time: number) => void;
   setVolume: (volume: number) => void;
+  clearTrack: () => void;
+  resetError: () => void;
 }
 
 export const AudioPlayerContext = createContext<AudioPlayerContextType | undefined>(undefined);
@@ -25,15 +29,30 @@ export const AudioPlayerProvider = ({ children }: { children: ReactNode }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(0.85);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const audioRef = useRef(new Audio());
+
+  const resetError = () => setError(null);
 
   const playTrack = (track: Beat) => {
     const playUrl = track.watermarkedAudioUrl || track.audioUrl || '';
     
     if (currentTrack?.id !== track.id || audioRef.current.src !== playUrl) {
+      setLoading(true);
+      setError(null);
       audioRef.current.src = playUrl;
       audioRef.current.load();
       setCurrentTrack(track);
+
+      // Media Session API
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: track.title,
+          artist: track.producer,
+          artwork: track.coverArtUrl ? [{ src: track.coverArtUrl, sizes: '512x512', type: 'image/jpeg' }] : []
+        });
+      }
 
       // Trigger tracking and milestone pipeline asynchronously
       (async () => {
@@ -63,10 +82,14 @@ export const AudioPlayerProvider = ({ children }: { children: ReactNode }) => {
     
     if (audioRef.current.src) {
       audioRef.current.play()
-        .then(() => setIsPlaying(true))
+        .then(() => {
+          setIsPlaying(true);
+          setLoading(false);
+        })
         .catch(err => {
-          // Gracefully catch NotSupportedError or autoplay restrictions without crashing
           console.warn("Audio playback safely handled:", err?.message || err);
+          setError("Playback failed. Please try again.");
+          setLoading(false);
         });
     }
   };
@@ -107,6 +130,12 @@ export const AudioPlayerProvider = ({ children }: { children: ReactNode }) => {
     audioRef.current.volume = vol;
   };
 
+  const clearTrack = () => {
+    pauseTrack();
+    setCurrentTrack(null);
+    audioRef.current.src = '';
+  };
+
   useEffect(() => {
     const audio = audioRef.current;
     
@@ -138,11 +167,15 @@ export const AudioPlayerProvider = ({ children }: { children: ReactNode }) => {
       currentTime, 
       duration, 
       volume,
+      loading,
+      error,
       playTrack, 
       pauseTrack, 
       togglePlay,
       seek,
-      setVolume
+      setVolume,
+      clearTrack,
+      resetError
     }}>
       {children}
     </AudioPlayerContext.Provider>

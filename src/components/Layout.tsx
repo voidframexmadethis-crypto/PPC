@@ -10,6 +10,8 @@ import {
   Disc,
   BarChart3,
   Radio,
+  ShoppingBag,
+  Package,
   Facebook,
   Instagram,
   Twitter,
@@ -292,7 +294,12 @@ export default function Layout() {
     { to: "/videos", icon: Youtube, label: "YouTube Videos" },
     { to: "/player", icon: Music, label: "Audio Player" },
     { to: "/storefront", icon: Disc, label: "Storefront" },
+    { to: "/merch", icon: ShoppingBag, label: "Merch Store" },
+    { to: "/beat-packs", icon: Package, label: "Beat Packs" },
+    { to: "/top-tracks", icon: BarChart3, label: "Top Tracks" },
     { to: "/enterprise", icon: Radio, label: "Services" },
+    { to: "/profile/krypside", icon: UserIcon, label: "My Profile" },
+    { to: "/settings", icon: Sparkles, label: "Settings" },
   ];
 
   return (
@@ -307,7 +314,7 @@ export default function Layout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-neutral-900 border-r border-neutral-800 transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:block flex flex-col ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-neutral-900/60 backdrop-blur-md border-r border-neutral-800 transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:block flex flex-col ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -326,6 +333,25 @@ export default function Layout() {
 
         <nav className="p-4 space-y-1 flex-1 overflow-y-auto">
           {navItems.map((item) => (
+            item.label === "Services" ? (
+              <div key={item.to} className="relative group">
+                <button
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-neutral-400 hover:bg-neutral-800/50 hover:text-white`}
+                  onClick={() => navigate(item.to)}
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span>{item.label}</span>
+                </button>
+                {/* Mega menu placeholder */}
+                <div className="absolute left-full top-0 ml-2 w-64 bg-neutral-900 border border-neutral-800 rounded-xl shadow-2xl p-4 hidden group-hover:block z-50">
+                    <div className="text-xs font-bold text-neutral-500 uppercase mb-2">Music Industry Services</div>
+                    <div className="space-y-2">
+                        <Link to="/enterprise" className="block text-sm text-neutral-300 hover:text-indigo-400">Join Network</Link>
+                        <Link to="/enterprise" className="block text-sm text-neutral-300 hover:text-indigo-400">Music Distribution</Link>
+                    </div>
+                </div>
+              </div>
+            ) : (
             <NavLink
               key={item.to}
               to={item.to}
@@ -333,7 +359,7 @@ export default function Layout() {
                 `flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                   isActive
                     ? "bg-indigo-500/10 text-indigo-400 font-medium"
-                    : "text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
+                    : "text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200"
                 }`
               }
               onClick={() => setSidebarOpen(false)}
@@ -341,11 +367,12 @@ export default function Layout() {
               <item.icon className="w-5 h-5" />
               <span>{item.label}</span>
             </NavLink>
+            )
           ))}
         </nav>
 
         {/* Sidebar Profile & Socials Footer */}
-        <div className="p-4 border-t border-neutral-800 bg-neutral-950/40 flex-shrink-0">
+        <div className="p-4 border-t border-neutral-800 bg-neutral-950/20 backdrop-blur-md flex-shrink-0">
           <div className="flex items-center space-x-3 mb-3">
             <div
               onClick={handleAdminAccess}
@@ -667,7 +694,7 @@ export default function Layout() {
                   </p>
 
                   <div className="mt-4 flex flex-wrap justify-center lg:justify-start gap-4 text-xs font-medium text-neutral-500">
-                    <span className="flex items-center gap-1.5">
+                    <span className="flex items-center gap-1">
                       <Check
                         className={`w-4 h-4 ${isSubscribed ? "text-emerald-400" : "text-neutral-600"}`}
                       />{" "}
@@ -711,7 +738,7 @@ export default function Layout() {
                 </div>
 
                 {/* Right Form panel */}
-                <div className="w-full lg:max-w-md bg-neutral-950/80 border border-neutral-800 p-5 rounded-xl shadow-inner">
+                <div className="w-full lg:max-w-md bg-neutral-950/20 backdrop-blur-md border border-neutral-800 p-5 rounded-xl shadow-inner">
                   {subStatus === "success" ? (
                     <div className="text-center py-6 animate-in fade-in zoom-in-95 duration-300">
                       <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-3">

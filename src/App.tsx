@@ -13,6 +13,11 @@ import Uploader from './pages/Uploader';
 import Admin from './pages/Admin';
 import AdminPortal from './pages/AdminPortal';
 import EnterpriseMusicPlatform from './pages/Enterprise';
+import MerchStore from './pages/MerchStore';
+import BeatPacks from './pages/BeatPacks';
+import TopTracks from './pages/TopTracks';
+import PublicProfile from './pages/PublicProfile';
+import EditProfile from './pages/EditProfile';
 
 class GlobalErrorBoundary extends (React.Component as any) {
   constructor(props: any) {
@@ -91,6 +96,11 @@ export default function App() {
                 <Route path="uploader" element={<Uploader />} />
                 <Route path="admin" element={<Admin />} />
                 <Route path="enterprise" element={<EnterpriseMusicPlatform />} />
+                <Route path="merch" element={<MerchStore />} />
+                <Route path="beat-packs" element={<BeatPacks />} />
+                <Route path="top-tracks" element={<TopTracks />} />
+                <Route path="profile/:username" element={<PublicProfile />} />
+                <Route path="settings" element={<EditProfile />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Routes>

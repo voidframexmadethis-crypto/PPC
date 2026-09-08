@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Play, Pause, Volume2, VolumeX, X, Music } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Trash, Download, Music } from 'lucide-react';
 import { useAudioPlayer } from '../context/AudioPlayerContext';
 import { useStore } from '../context/StoreContext';
+import Waveform from './Waveform';
 
 export default function AudioPlayer() {
   const { 
@@ -13,7 +14,10 @@ export default function AudioPlayer() {
     togglePlay: togglePlayContext, 
     seek, 
     setVolume,
-    pauseTrack
+    clearTrack,
+    loading,
+    error,
+    resetError
   } = useAudioPlayer();
   const { incrementAnalytics } = useStore();
 
@@ -25,7 +29,6 @@ export default function AudioPlayer() {
   };
 
   const activeTrack = currentTrack;
-
   const [isMuted, setIsMuted] = useState(false);
   const [prevVolume, setPrevVolume] = useState(volume);
 
@@ -46,8 +49,15 @@ export default function AudioPlayer() {
     }
   };
 
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    seek(parseFloat(e.target.value));
+  const handleDownload = () => {
+    if (activeTrack?.audioUrl) {
+      const link = document.createElement('a');
+      link.href = activeTrack.audioUrl;
+      link.download = `${activeTrack.title}.mp3`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -57,86 +67,77 @@ export default function AudioPlayer() {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  // Add safe checks so if 'activeTrack' is null, the screen doesn't turn white
   if (!activeTrack) return null;
 
   return (
-    <div className="global-audio-player-anchor fixed bottom-0 left-0 right-0 z-50 bg-neutral-950/95 border-t border-neutral-800/80 backdrop-blur-md px-4 py-3 text-white shadow-2xl transition-all animate-in slide-in-from-bottom-5">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-        {/* Track Info */}
-        <div className="flex items-center gap-3 min-w-0 w-1/4">
-          <div className="w-12 h-12 bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
-            {currentTrack.coverArtUrl ? (
-              <img src={currentTrack.coverArtUrl} alt={currentTrack.title} className="w-full h-full object-cover" />
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-neutral-950/90 backdrop-blur-xl border-t border-indigo-500/30 text-white h-24 shadow-[0_-4px_30px_rgba(79,70,229,0.2)]">
+      <div className="max-w-7xl mx-auto flex items-center h-full px-6 gap-6">
+        {/* Artwork & Info */}
+        <div className="flex items-center gap-4 w-72 shrink-0">
+          <div className="w-16 h-16 bg-neutral-900 rounded-xl overflow-hidden flex items-center justify-center shrink-0 border border-indigo-500/30 shadow-inner">
+            {activeTrack.coverArtUrl ? (
+              <img src={activeTrack.coverArtUrl} alt={activeTrack.title} className="w-full h-full object-cover" />
             ) : (
-              <Music className="w-6 h-6 text-indigo-400" />
+              <Music className="w-8 h-8 text-indigo-500" />
             )}
           </div>
-          <div className="min-w-0 flex-1">
-            <h4 className="font-bold text-sm text-white truncate">{currentTrack.title || 'Untitled Beat'}</h4>
-            <div className="flex items-center gap-2 text-xs text-neutral-400 truncate">
-              <span>{currentTrack.producer || 'KRYPSIDE'}</span>
-              {currentTrack.bpm ? (
-                <span className="bg-neutral-800 px-1.5 py-0.5 rounded text-[10px] text-neutral-300 font-bold">
-                  {currentTrack.bpm} BPM
-                </span>
-              ) : null}
+          <div className="min-w-0">
+            <h4 className="font-bold text-base truncate text-white">{activeTrack.title}</h4>
+            <p className="text-sm text-neutral-400 truncate hover:text-indigo-400 cursor-pointer">{activeTrack.producer}</p>
+          </div>
+        </div>
+
+        {/* Playback Controls & Waveform */}
+        <div className="flex items-center gap-6 flex-1 max-w-3xl">
+          <button 
+            onClick={handleTogglePlay} 
+            className="w-14 h-14 bg-indigo-600 text-white rounded-full flex items-center justify-center hover:bg-indigo-500 transition-all hover:scale-105 shrink-0 shadow-lg shadow-indigo-900/50"
+            disabled={loading}
+          >
+            {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 
+             isPlaying ? <Pause className="w-6 h-6 fill-white" /> : <Play className="w-6 h-6 fill-white ml-1" />}
+          </button>
+          
+          <div className="flex-1 flex flex-col gap-1.5 pt-1">
+            <div 
+              className="cursor-pointer group h-10 flex items-center relative"
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                seek((x / rect.width) * duration);
+              }}
+            >
+              <Waveform duration={duration} currentTime={currentTime} width={600} height={40} color={error ? '#ef4444' : "#4f46e5"} />
+            </div>
+            <div className="flex justify-between text-[11px] text-neutral-400 font-mono tracking-wider">
+              <span>{error ? <span className="text-red-500">{error}</span> : formatTime(currentTime)}</span>
+              <span>{formatTime(duration)}</span>
             </div>
           </div>
         </div>
 
-        {/* Player Controls & Seekbar */}
-        <div className="flex flex-col items-center gap-1.5 flex-1 max-w-xl">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleTogglePlay}
-              className="w-10 h-10 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center transition-all shadow-lg active:scale-95"
-              title={isPlaying ? 'Pause' : 'Play'}
-            >
-              {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
-            </button>
-          </div>
-
-          {/* Time & Timeline */}
-          <div className="w-full flex items-center gap-2 text-xs text-neutral-400">
-            <span className="w-10 text-right font-mono text-[11px]">{formatTime(currentTime)}</span>
-            <input
-              type="range"
-              min="0"
-              max={duration || 180}
-              step="0.1"
-              value={currentTime}
-              onChange={handleSeek}
-              className="flex-1 h-1 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 focus:outline-none"
-            />
-            <span className="w-10 font-mono text-[11px]">{formatTime(duration)}</span>
-          </div>
-        </div>
-
-        {/* Volume & Close */}
-        <div className="flex items-center gap-4 w-1/4 justify-end">
-          <div className="hidden sm:flex items-center gap-2">
-            <button onClick={toggleMute} className="text-neutral-400 hover:text-white transition-colors">
-              {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4" />}
-            </button>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={isMuted ? 0 : volume}
-              onChange={handleVolumeChange}
-              className="w-20 h-1 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-            />
-          </div>
-
-          <button
-            onClick={pauseTrack}
-            className="p-1.5 text-neutral-500 hover:text-white hover:bg-neutral-800 rounded-lg transition-colors"
-            title="Stop Playback"
-          >
-            <X className="w-5 h-5" />
+        {/* Right Actions */}
+        <div className="flex items-center gap-4 shrink-0 justify-end w-72">
+          <button onClick={handleDownload} title="Free Download" className="p-2.5 text-neutral-400 hover:text-indigo-400 transition-colors">
+            <Download className="w-5 h-5" />
           </button>
+          <button onClick={clearTrack} title="Close Player" className="p-2.5 text-neutral-400 hover:text-red-500 transition-colors">
+            <Trash className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={toggleMute} className="text-neutral-400 hover:text-white transition-colors">
+              {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+            </button>
+            <input 
+              type="range" 
+              min="0" 
+              max="1" 
+              step="0.01" 
+              value={volume} 
+              onChange={handleVolumeChange} 
+              className="w-24 accent-indigo-500 h-1 bg-neutral-800 rounded-full appearance-none cursor-pointer" 
+            />
+          </div>
         </div>
       </div>
     </div>
