@@ -74,7 +74,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ beat, onClose, onS
         createOrder: (_data: any, actions: any) => {
           return actions.order.create({
             purchase_units: [{
-              description: `Krypside Beat Track: ${trackTitle}`,
+              description: `NightRunna Beat Track: ${trackTitle}`,
               amount: { currency_code: 'USD', value: finalPrice.toString() }
             }]
           });
@@ -165,7 +165,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ beat, onClose, onS
             {!isCryptoProcessing && !isCryptoSuccess && (
               <>
                 <p style={{ color: '#aaa', fontSize: '14px', margin: 0, lineHeight: '1.4' }}>
-                  Authorize your purchase securely on the blockchain. Funds will route directly to your verified Krypside address:
+                  Authorize your purchase securely on the blockchain. Funds will route directly to your verified NightRunna address:
                 </p>
                 <div style={{ 
                   backgroundColor: '#1a1a1a', padding: '14px', borderRadius: '6px', 
@@ -217,7 +217,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ beat, onClose, onS
         )}
 
         <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '11px', color: '#555555' }}>
-          Encrypted SSL Secure Framework • Independent Krypside Enterprise Pipeline
+          Encrypted SSL Secure Framework • Independent NightRunna Enterprise Pipeline
         </div>
       </div>
     </div>

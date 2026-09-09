@@ -98,5 +98,22 @@ service cloud.firestore {
       allow create: if true;
       allow read: if isSignedIn() && request.auth.token.email == 'pyrexxspinna@gmail.com';
     }
+    // Collection: Analytics Events
+    match /analytics_events/{eventId} {
+      allow create: if true;
+      allow read: if isSignedIn() && (request.auth.token.email == 'pyrexxspinna@gmail.com' || request.auth.token.email == 'glennbucky@gmail.com' || request.auth.token.email == 'krypside@gmail.com');
+    }
+
+    // Collection: Notifications
+    match /notifications/{notifId} {
+      allow create: if true;
+      allow read, update, delete: if isSignedIn() && (request.auth.token.email == 'pyrexxspinna@gmail.com' || request.auth.token.email == 'glennbucky@gmail.com' || request.auth.token.email == 'krypside@gmail.com');
+    }
+
+    // Collection: Achievements (Digital Record Plaques)
+    match /achievements/{achievementId} {
+      allow read: if true; // Public access for Hall of Fame & verification
+      allow write: if true; // Automated milestone unlock on real store events
+    }
   }
 }

@@ -7,9 +7,9 @@ export const AnalyticsTracker = () => {
     incrementAnalytics('siteVisits');
     
     // Very simple visitor tracking: only count if not already visited in this session
-    if (!sessionStorage.getItem('KRYPSIDE_VISITED')) {
+    if (!sessionStorage.getItem('NIGHTRUNNA_VISITED')) {
       incrementAnalytics('uniqueVisitors');
-      sessionStorage.setItem('KRYPSIDE_VISITED', 'true');
+      sessionStorage.setItem('NIGHTRUNNA_VISITED', 'true');
     }
   }, []);
   return null;

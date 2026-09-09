@@ -15,9 +15,12 @@ import AdminPortal from './pages/AdminPortal';
 import EnterpriseMusicPlatform from './pages/Enterprise';
 import MerchStore from './pages/MerchStore';
 import BeatPacks from './pages/BeatPacks';
-import TopTracks from './pages/TopTracks';
+import TopTracks from "./pages/TopTracks";
+import Collections from "./pages/Collections";
 import PublicProfile from './pages/PublicProfile';
 import EditProfile from './pages/EditProfile';
+import { HallOfFame } from './components/plaque/HallOfFame';
+import { PublicVerification } from './components/plaque/PublicVerification';
 
 class GlobalErrorBoundary extends (React.Component as any) {
   constructor(props: any) {
@@ -49,22 +52,22 @@ class GlobalErrorBoundary extends (React.Component as any) {
   }
 }
 
-export const KRYPSIDE_STREAM_VARIABLES = {
+export const NIGHTRUNNA_STREAM_VARIABLES = {
   previewAudio: '',
   musicAssets: ['/beats/123.m4a', '/beats/456.m4a']
 };
 
 export default function App() {
   useEffect(() => {
-    let visitorId = localStorage.getItem('KRYPSIDE_VISITOR_ID');
+    let visitorId = localStorage.getItem('NIGHTRUNNA_VISITOR_ID');
     if (!visitorId) {
       visitorId = `v_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-      localStorage.setItem('KRYPSIDE_VISITOR_ID', visitorId);
+      localStorage.setItem('NIGHTRUNNA_VISITOR_ID', visitorId);
     }
-    let sessionId = sessionStorage.getItem('KRYPSIDE_SESSION_ID');
+    let sessionId = sessionStorage.getItem('NIGHTRUNNA_SESSION_ID');
     if (!sessionId) {
       sessionId = `s_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-      sessionStorage.setItem('KRYPSIDE_SESSION_ID', sessionId);
+      sessionStorage.setItem('NIGHTRUNNA_SESSION_ID', sessionId);
     }
     fetch('/api/analytics/event', {
       method: 'POST',
@@ -99,6 +102,10 @@ export default function App() {
                 <Route path="merch" element={<MerchStore />} />
                 <Route path="beat-packs" element={<BeatPacks />} />
                 <Route path="top-tracks" element={<TopTracks />} />
+                <Route path="collections" element={<Collections />} />
+                <Route path="hall-of-fame" element={<div className="max-w-7xl mx-auto px-4 py-8"><HallOfFame /></div>} />
+                <Route path="verify/plaque/:plaqueId" element={<PublicVerification />} />
+                <Route path="verify/:plaqueId" element={<PublicVerification />} />
                 <Route path="profile/:username" element={<PublicProfile />} />
                 <Route path="settings" element={<EditProfile />} />
                 <Route path="*" element={<Navigate to="/" replace />} />

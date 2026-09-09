@@ -3,6 +3,7 @@ import { Beat } from '../types';
 import { db } from '../lib/firebase';
 import { doc, increment, updateDoc, getDoc } from 'firebase/firestore';
 import { processTrackStreamMetric } from '../lib/milestoneTracker';
+import { useStore } from './StoreContext';
 
 interface AudioPlayerContextType {
   currentTrack: Beat | null;
@@ -19,6 +20,7 @@ interface AudioPlayerContextType {
   setVolume: (volume: number) => void;
   clearTrack: () => void;
   resetError: () => void;
+  audioElement: HTMLAudioElement | null;
 }
 
 export const AudioPlayerContext = createContext<AudioPlayerContextType | undefined>(undefined);
@@ -31,6 +33,8 @@ export const AudioPlayerProvider = ({ children }: { children: ReactNode }) => {
   const [volume, setVolumeState] = useState(0.85);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { recordAnalyticsEvent } = useStore();
   const audioRef = useRef(new Audio());
 
   const resetError = () => setError(null);
@@ -73,6 +77,7 @@ export const AudioPlayerProvider = ({ children }: { children: ReactNode }) => {
               const currentPlays = snap.data().plays || 0;
               await processTrackStreamMetric(track.id, currentPlays);
             }
+            await recordAnalyticsEvent('PLAY', track.id);
           }
         } catch (error) {
           console.warn("Milestone tracking error:", error);
@@ -175,7 +180,8 @@ export const AudioPlayerProvider = ({ children }: { children: ReactNode }) => {
       seek,
       setVolume,
       clearTrack,
-      resetError
+      resetError,
+      audioElement: audioRef.current
     }}>
       {children}
     </AudioPlayerContext.Provider>

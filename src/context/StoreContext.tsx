@@ -10,12 +10,14 @@ import {
   updateDoc, 
   deleteDoc, 
   orderBy,
-  serverTimestamp 
+  serverTimestamp,
+  addDoc
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { useAuth } from './AuthContext';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { filterHumanBeats, isAIPlaceholderBeat } from '../lib/beatUtils';
+import { MILESTONES, generatePlaqueId } from '../utils/achievementUtils';
 
 interface StoreContextType {
   state: StoreState;
@@ -28,14 +30,14 @@ interface StoreContextType {
   updateBeat: (id: string, updates: Partial<Beat>) => Promise<void>;
   incrementAnalytics: (metric: keyof Analytics, amount?: number) => void;
   resetAnalytics: (metric: keyof Analytics) => void;
-  recordAnalyticsEvent: (eventType: 'VISIT' | 'DOWNLOAD' | 'SHARE' | 'LIKE', trackId?: string) => Promise<void>;
+  recordAnalyticsEvent: (eventType: 'VISIT' | 'DOWNLOAD' | 'SHARE' | 'LIKE' | 'PLAY' | 'VIEW' | 'PURCHASE', trackId?: string, metadata?: any) => Promise<void>;
 }
 
 const STARTER_BEATS: Beat[] = [];
 
 const defaultState: StoreState = {
   profile: {
-    name: 'KRYPSIDE',
+    name: 'NightRunna',
     bio: 'Pro Audio Loops & Instrumental Beats',
     avatarUrl: '',
     socialLinks: [],
@@ -60,9 +62,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [state, setState] = useState<StoreState>(() => {
     try {
-      const savedBeats = localStorage.getItem('krypside_beats_backup');
-      const savedArchived = localStorage.getItem('krypside_archived_backup');
-      const savedProfile = localStorage.getItem('krypside_profile_backup');
+      const savedBeats = localStorage.getItem('nightrunna_beats_backup');
+      const savedArchived = localStorage.getItem('nightrunna_archived_backup');
+      const savedProfile = localStorage.getItem('nightrunna_profile_backup');
       const parsedBeats = savedBeats ? JSON.parse(savedBeats) : [];
       const validBeats = filterHumanBeats(parsedBeats);
       return {
@@ -97,8 +99,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }));
   };
 
-  const recordAnalyticsEvent = async (eventType: 'VISIT' | 'DOWNLOAD' | 'SHARE' | 'LIKE', trackId?: string) => {
-    const visitorId = localStorage.getItem('KRYPSIDE_VISITOR_ID');
+  const recordAnalyticsEvent = async (eventType: 'VISIT' | 'DOWNLOAD' | 'SHARE' | 'LIKE' | 'PLAY' | 'VIEW' | 'PURCHASE', trackId?: string, metadata?: any) => {
+    let visitorId = localStorage.getItem('NIGHTRUNNA_VISITOR_ID');
+    if (!visitorId) {
+      visitorId = `v_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+      localStorage.setItem('NIGHTRUNNA_VISITOR_ID', visitorId);
+    }
+    
+    // Fallback original tracking
     try {
       await fetch('/api/analytics/event', {
         method: 'POST',
@@ -106,7 +114,159 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ eventType, trackId, visitorId })
       });
     } catch (err) {
-      console.error("Failed to record analytics event", err);
+      // Non-fatal
+    }
+
+
+    
+    // Check for important events to trigger notifications
+    let notifData: any = null;
+    if (eventType === 'PURCHASE') {
+      const beatName = metadata?.beatTitle || trackId || 'A beat';
+      const price = metadata?.price || 0;
+      notifData = {
+        type: 'SALE',
+        title: '💰 NEW BEAT SALE',
+        message: `"${beatName}" was purchased.\n$${Number(price).toFixed(2)}`,
+        url: '/admin/orders',
+        read: false,
+        timestamp: new Date().toISOString()
+      };
+    } else if (eventType === 'PLAY' && trackId) {
+      const beat = state.beats.find(b => b.id === trackId);
+      if (beat) {
+        const plays = (beat.plays || 0) + 1;
+        const matchingMilestone = MILESTONES.find(m => m.milestone === plays);
+        if (matchingMilestone) {
+           const plaqueId = generatePlaqueId(beat.id, matchingMilestone.milestone);
+           const now = new Date();
+           const docId = `${beat.id}_${matchingMilestone.milestone}`;
+
+           // Persist Digital Record Plaque to Firestore
+           try {
+             await setDoc(doc(db, 'achievements', docId), {
+               id: docId,
+               plaqueId,
+               beatId: beat.id,
+               beatTitle: beat.title || 'Untitled Beat',
+               producer: beat.producer || 'NightRunna',
+               milestone: matchingMilestone.milestone,
+               milestoneLabel: matchingMilestone.label,
+               requiredPlays: matchingMilestone.milestone,
+               actualPlaysWhenUnlocked: plays,
+               coverArtUrl: beat.coverArtUrl || '',
+               earnedDate: now.toISOString(),
+               earnedTimestamp: now.getTime(),
+               verificationStatus: 'VERIFIED',
+               createdAt: serverTimestamp()
+             }, { merge: true });
+           } catch (e) {
+             console.warn("Could not record achievement plaque to Firestore", e);
+           }
+
+           notifData = {
+             type: 'MILESTONE',
+             title: '🏆 RECORD PLAQUE UNLOCKED',
+             message: `"${beat.title}" reached ${matchingMilestone.label}!\nYour Digital Record Plaque is ready in the Hall of Fame.`,
+             url: '/admin/achievements',
+             read: false,
+             timestamp: now.toISOString()
+           };
+        } else {
+           // Check for real trending surge based on real play timestamps
+           const now = Date.now();
+           const playHistoryKey = `play_history_${trackId}`;
+           const recentPlayTimes: number[] = JSON.parse(localStorage.getItem(playHistoryKey) || '[]')
+             .filter((t: number) => now - t < 3600000); // Last 1 hour
+           recentPlayTimes.push(now);
+           localStorage.setItem(playHistoryKey, JSON.stringify(recentPlayTimes));
+
+           const lastTrendingSent = Number(localStorage.getItem(`trending_sent_${trackId}`) || '0');
+           if (recentPlayTimes.length >= 5 && now - lastTrendingSent > 86400000) {
+              localStorage.setItem(`trending_sent_${trackId}`, now.toString());
+              notifData = {
+                type: 'TRENDING',
+                title: '📈 TRENDING BEAT',
+                message: `"${beat.title}" is receiving significantly more plays (${recentPlayTimes.length} plays in the past hour).`,
+                url: '/admin/analytics',
+                read: false,
+                timestamp: new Date().toISOString()
+              };
+           }
+        }
+      }
+    } else if (eventType === 'DOWNLOAD' && trackId) {
+       // Throttled Free Download Notification
+       const dlKey = `dl_throttle_${trackId}`;
+       const dlCount = parseInt(localStorage.getItem(dlKey) || '0') + 1;
+       localStorage.setItem(dlKey, dlCount.toString());
+       
+       if (dlCount % 5 === 0) {
+          const beat = state.beats.find(b => b.id === trackId);
+          notifData = {
+             type: 'DOWNLOAD',
+             title: '🆓 FREE DOWNLOAD ACTIVITY',
+             message: `"${beat?.title || 'A beat'}" has reached ${dlCount} downloads.`,
+             url: '/admin/analytics',
+             read: false,
+             timestamp: new Date().toISOString()
+          };
+       }
+    }
+
+    if (notifData) {
+      // Check notification preferences saved by admin
+      let pushAllowed = true;
+      let historyAllowed = true;
+      let categoryAllowed = true;
+
+      const savedPrefs = localStorage.getItem('NIGHTRUNNA_NOTIF_PREFS');
+      if (savedPrefs) {
+        try {
+          const parsed = JSON.parse(savedPrefs);
+          if (typeof parsed.pushEnabled === 'boolean') pushAllowed = parsed.pushEnabled;
+          if (typeof parsed.historyEnabled === 'boolean') historyAllowed = parsed.historyEnabled;
+          if (parsed.categories) {
+            if (notifData.type === 'SALE') categoryAllowed = parsed.categories.sales !== false;
+            if (notifData.type === 'MILESTONE') categoryAllowed = parsed.categories.milestones !== false;
+            if (notifData.type === 'DOWNLOAD') categoryAllowed = parsed.categories.freeDownloads !== false;
+            if (notifData.type === 'TRENDING') categoryAllowed = parsed.categories.trending !== false;
+          }
+        } catch (e) {
+          console.warn("Error reading notification preferences", e);
+        }
+      }
+
+      if (categoryAllowed) {
+        try {
+          if (historyAllowed) {
+            await addDoc(collection(db, 'notifications'), notifData);
+          }
+          if (pushAllowed) {
+            await fetch('/api/push/notify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(notifData)
+            });
+          }
+        } catch (e) {
+          console.warn("Could not record notification", e);
+        }
+      }
+    }
+
+
+    // New persistent Firestore analytics
+    try {
+      await addDoc(collection(db, 'analytics_events'), {
+        eventType,
+        trackId: trackId || null,
+        visitorId,
+        metadata: metadata || null,
+        timestamp: serverTimestamp(),
+      });
+    } catch (err) {
+      console.warn("Firestore analytics logging failed", err);
     }
   };
 
@@ -114,9 +274,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const validBeats = filterHumanBeats(state.beats);
-      localStorage.setItem('krypside_beats_backup', JSON.stringify(validBeats));
-      localStorage.setItem('krypside_archived_backup', JSON.stringify(state.archivedBeats));
-      localStorage.setItem('krypside_profile_backup', JSON.stringify(state.profile));
+      localStorage.setItem('nightrunna_beats_backup', JSON.stringify(validBeats));
+      localStorage.setItem('nightrunna_archived_backup', JSON.stringify(state.archivedBeats));
+      localStorage.setItem('nightrunna_profile_backup', JSON.stringify(state.profile));
     } catch (e) {
       console.error("Failed to save local backup", e);
     }

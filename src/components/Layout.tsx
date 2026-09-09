@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Outlet, NavLink, Link, useNavigate } from "react-router-dom";
+import { Outlet, NavLink, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   Home,
   Youtube,
@@ -24,7 +24,7 @@ import {
   Loader2,
   Volume2,
   Upload,
-  Scale,
+  Scale, Library,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useStore } from "../context/StoreContext";
@@ -46,14 +46,15 @@ export default function Layout() {
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
   const [isUploaderOverlayOpen, setIsUploaderOverlayOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     // Only track site visits for non-owners to ensure analytics accuracy
     if (!authLoading && user?.email !== 'glennbucky@gmail.com') {
-      const hasVisitedThisSession = sessionStorage.getItem('KRYPSIDE_VISITED');
+      const hasVisitedThisSession = sessionStorage.getItem('NIGHTRUNNA_VISITED');
       if (!hasVisitedThisSession) {
         incrementAnalytics("siteVisits");
-        sessionStorage.setItem('KRYPSIDE_VISITED', 'true');
+        sessionStorage.setItem('NIGHTRUNNA_VISITED', 'true');
       }
     }
   }, [authLoading, user]);
@@ -76,7 +77,7 @@ export default function Layout() {
     if ("speechSynthesis" in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(
-        "Krypside on the track. Welcome to the official sound lab and beat store. Select your instrumentals and secure your lease.",
+        "Welcome to NightRunna store",
       );
       utterance.rate = 1.0;
       utterance.pitch = 0.9;
@@ -132,7 +133,7 @@ export default function Layout() {
   };
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const profileName = user?.displayName || state.profile.name || "KRYPSIDE";
+  const profileName = user?.displayName || state.profile.name || "NightRunna";
   const profileBio =
     state.profile.bio || "Pro Audio Loops & Instrumental Beats";
   const profileImg = user?.photoURL || state.profile.avatarUrl || "";
@@ -145,7 +146,7 @@ export default function Layout() {
     laserAudio.play().catch(() => {});
     
     // Set Auth & Navigate
-    localStorage.setItem("KRYPSIDE_ADMIN_AUTH", "true");
+    localStorage.setItem("NIGHTRUNNA_ADMIN_AUTH", "true");
     navigate("/admin");
   };
 
@@ -185,7 +186,7 @@ export default function Layout() {
 
         // Check if there are new unread notifications
         const lastRead = Number(
-          localStorage.getItem("KRYPSIDE_LAST_NOTIF_READ") || "0",
+          localStorage.getItem("NIGHTRUNNA_LAST_NOTIF_READ") || "0",
         );
         const hasUnread = (data.notifications || []).some(
           (n: any) => new Date(n.sentAt).getTime() > lastRead,
@@ -198,31 +199,31 @@ export default function Layout() {
   };
 
   const checkSubscriptionStatus = () => {
-    setIsSubscribed(localStorage.getItem("KRYPSIDE_SUBSCRIBED") === "true");
+    setIsSubscribed(localStorage.getItem("NIGHTRUNNA_SUBSCRIBED") === "true");
     setIsYouTubeSubscribed(
-      localStorage.getItem("KRYPSIDE_YOUTUBE_SUBSCRIBED") === "true",
+      localStorage.getItem("NIGHTRUNNA_YOUTUBE_SUBSCRIBED") === "true",
     );
     setIsTikTokFollowed(
-      localStorage.getItem("KRYPSIDE_TIKTOK_FOLLOWED") === "true",
+      localStorage.getItem("NIGHTRUNNA_TIKTOK_FOLLOWED") === "true",
     );
   };
 
   const toggleYouTubeSubscribe = () => {
     const newState = !isYouTubeSubscribed;
     setIsYouTubeSubscribed(newState);
-    localStorage.setItem("KRYPSIDE_YOUTUBE_SUBSCRIBED", newState.toString());
-    window.dispatchEvent(new Event("KRYPSIDE_SUBSCRIBED_STATUS_CHANGED"));
+    localStorage.setItem("NIGHTRUNNA_YOUTUBE_SUBSCRIBED", newState.toString());
+    window.dispatchEvent(new Event("NIGHTRUNNA_SUBSCRIBED_STATUS_CHANGED"));
     // Direct navigation to bypass WebKit blob errors
-    window.location.href = "https://youtube.com/@Krypside";
+    window.location.href = "https://youtube.com/@nightrunna";
   };
 
   const toggleTikTokFollow = () => {
     const newState = !isTikTokFollowed;
     setIsTikTokFollowed(newState);
-    localStorage.setItem("KRYPSIDE_TIKTOK_FOLLOWED", newState.toString());
-    window.dispatchEvent(new Event("KRYPSIDE_SUBSCRIBED_STATUS_CHANGED"));
+    localStorage.setItem("NIGHTRUNNA_TIKTOK_FOLLOWED", newState.toString());
+    window.dispatchEvent(new Event("NIGHTRUNNA_SUBSCRIBED_STATUS_CHANGED"));
     // Direct navigation to bypass WebKit blob errors
-    window.location.href = "https://tiktok.com/@krypside";
+    window.location.href = "https://tiktok.com/@nightrunna";
   };
 
   const handleSubscribe = async (e: React.FormEvent) => {
@@ -247,14 +248,14 @@ export default function Layout() {
       if (res.ok && data.success) {
         setSubStatus("success");
         setSubMessage(data.message);
-        localStorage.setItem("KRYPSIDE_SUBSCRIBED", "true");
-        localStorage.setItem("KRYPSIDE_SUBSCRIBER_EMAIL", subEmail.trim());
-        localStorage.setItem("KRYPSIDE_SUBSCRIBER_NAME", subName.trim());
+        localStorage.setItem("NIGHTRUNNA_SUBSCRIBED", "true");
+        localStorage.setItem("NIGHTRUNNA_SUBSCRIBER_EMAIL", subEmail.trim());
+        localStorage.setItem("NIGHTRUNNA_SUBSCRIBER_NAME", subName.trim());
         setSubEmail("");
         setSubName("");
         checkSubscriptionStatus();
         // Trigger event so other pages know the user subscribed (for download locks)
-        window.dispatchEvent(new Event("KRYPSIDE_SUBSCRIBED_STATUS_CHANGED"));
+        window.dispatchEvent(new Event("NIGHTRUNNA_SUBSCRIBED_STATUS_CHANGED"));
       } else {
         setSubStatus("error");
         setSubMessage(data.error || "Failed to subscribe. Please try again.");
@@ -274,7 +275,7 @@ export default function Layout() {
     };
 
     window.addEventListener(
-      "KRYPSIDE_SUBSCRIBED_STATUS_CHANGED",
+      "NIGHTRUNNA_SUBSCRIBED_STATUS_CHANGED",
       handleSubChanged,
     );
 
@@ -283,7 +284,7 @@ export default function Layout() {
 
     return () => {
       window.removeEventListener(
-        "KRYPSIDE_SUBSCRIBED_STATUS_CHANGED",
+        "NIGHTRUNNA_SUBSCRIBED_STATUS_CHANGED",
         handleSubChanged,
       );
       clearInterval(interval);
@@ -298,9 +299,19 @@ export default function Layout() {
     { to: "/merch", icon: ShoppingBag, label: "Merch Store" },
     { to: "/beat-packs", icon: Package, label: "Beat Packs" },
     { to: "/top-tracks", icon: BarChart3, label: "Top Tracks" },
+    { to: "/collections", icon: Library, label: "Collections" },
     { to: "/enterprise", icon: Radio, label: "Services" },
     { to: "/settings", icon: Sparkles, label: "Settings" },
   ];
+
+  if (location.pathname === '/admin') {
+    return (
+      <div className="flex h-screen bg-[#050505] text-white font-sans overflow-hidden">
+        <Outlet />
+        <AudioPlayer />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-neutral-950 text-neutral-100 font-sans">
@@ -365,7 +376,7 @@ export default function Layout() {
                     <span>RAPPER EXCLUSIVE ACCESS</span>
                   </div>
                   <h3 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
-                    Join the KRYPSIDE VIP Newsletter
+                    Join the NightRunna VIP Newsletter
                   </h3>
                   <p className="mt-2 text-neutral-400 text-sm md:text-base leading-relaxed">
                     Subscribing unlocks{" "}
@@ -526,7 +537,7 @@ export default function Layout() {
               </div>
             </div>
 
-            {/* OFFICIAL KRYPSIDE TERMS OF SERVICE LEGAL PANEL */}
+            {/* OFFICIAL NIGHTRUNNA TERMS OF SERVICE LEGAL PANEL */}
             <div className="mt-10 bg-neutral-900 border border-neutral-800 rounded-2xl p-6 md:p-8 shadow-xl">
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-neutral-800">
                 <div className="flex items-center gap-2.5">
@@ -535,7 +546,7 @@ export default function Layout() {
                   </div>
                   <div>
                     <h4 className="text-white font-extrabold text-sm md:text-base tracking-wide">
-                      KRYPSIDE OFFICIAL TERMS OF SERVICE
+                      NightRunna OFFICIAL TERMS OF SERVICE
                     </h4>
                     <p className="text-[11px] text-neutral-400">
                       Standard Instrumental Licensing, Master Rights, & Platform
@@ -555,11 +566,11 @@ export default function Layout() {
                     1. Introduction & Acceptance of Terms
                   </h5>
                   <p>
-                    Welcome to Krypside Music Platform. By accessing, streaming,
+                    Welcome to NightRunna Music Platform. By accessing, streaming,
                     or purchasing instrumental beats, sound kits, and audio
                     licenses through this platform, you agree to be bound by
                     these Terms of Service. All rights, master recordings, and
-                    compositional copyrights remain with Krypside unless
+                    compositional copyrights remain with NightRunna unless
                     explicitly transferred via an executed commercial lease
                     agreement.
                   </p>
@@ -611,9 +622,9 @@ export default function Layout() {
                   </h5>
                   <p>
                     Users agree not to reverse engineer, scrape, or distribute
-                    unpurchased watermark preview files outside the Krypside
+                    unpurchased watermark preview files outside the NightRunna
                     audio engine. All trademarks, logos, and producer tags are
-                    protected property of Krypside.
+                    protected property of NightRunna.
                   </p>
                 </div>
 
@@ -622,7 +633,7 @@ export default function Layout() {
                     5. Updates & Governing Compliance
                   </h5>
                   <p>
-                    Krypside reserves the right to modify these terms at any
+                    NightRunna reserves the right to modify these terms at any
                     time. Continued use of the sound lab and beat store
                     constitutes acceptance of updated terms.
                   </p>
@@ -634,7 +645,7 @@ export default function Layout() {
             <div className="mt-8 border-t border-neutral-900 pt-6 flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-neutral-500 max-w-7xl mx-auto px-4 pb-8">
               <div className="flex flex-col gap-2 text-center md:text-left">
                 <p style={{ cursor: "default" }} className="select-none">
-                  © {new Date().getFullYear()} KRYPSIDE. All Rights Reserved.
+                  © {new Date().getFullYear()} NightRunna. All Rights Reserved.
                 </p>
 
                 <button
@@ -648,38 +659,38 @@ export default function Layout() {
               {/* Official Social Media Connectivity Panel */}
               <div className="flex items-center gap-3">
                 <a
-                  href="https://x.com/krypside"
+                  href="https://x.com/nightrunna"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-9 h-9 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-400 hover:text-white flex items-center justify-center transition-all shadow-sm group"
-                  title="X (Twitter) @krypside"
+                  title="X (Twitter) @nightrunna"
                 >
                   <Twitter className="w-4 h-4 transition-transform group-hover:scale-110" />
                 </a>
                 <a
-                  href="https://instagram.com/krypside"
+                  href="https://instagram.com/nightrunna"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-9 h-9 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-400 hover:text-white flex items-center justify-center transition-all shadow-sm group"
-                  title="Instagram @krypside"
+                  title="Instagram @nightrunna"
                 >
                   <Instagram className="w-4 h-4 transition-transform group-hover:scale-110" />
                 </a>
                 <a
-                  href="https://youtube.com/@krypside"
+                  href="https://youtube.com/@nightrunna"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-9 h-9 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-400 hover:text-white flex items-center justify-center transition-all shadow-sm group"
-                  title="YouTube @krypside"
+                  title="YouTube @nightrunna"
                 >
                   <Youtube className="w-4 h-4 transition-transform group-hover:scale-110" />
                 </a>
                 <a
-                  href="https://tiktok.com/@krypside"
+                  href="https://tiktok.com/@nightrunna"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-9 h-9 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-400 hover:text-white flex items-center justify-center transition-all shadow-sm group"
-                  title="TikTok @krypside"
+                  title="TikTok @nightrunna"
                 >
                   <svg
                     className="w-4 h-4 transition-transform group-hover:scale-110"
@@ -723,7 +734,7 @@ export default function Layout() {
                 </div>
                 <div>
                   <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
-                    Krypside Accessibility Uploader
+                    NightRunna Accessibility Uploader
                   </h2>
                   <p className="text-neutral-400 text-xs md:text-sm mt-1">
                     Stark high-visibility dark mode with massive scale input

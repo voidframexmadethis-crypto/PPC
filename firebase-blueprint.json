@@ -75,6 +75,27 @@
         "timestamp": { "type": "string", "format": "date-time" }
       },
       "required": ["eventType", "visitorId", "timestamp"]
+    },
+    "Achievement": {
+      "title": "Achievement",
+      "description": "Digital Record Plaque earned when a beat crosses a play count milestone.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "plaqueId": { "type": "string", "maxLength": 50 },
+        "beatId": { "type": "string", "maxLength": 128 },
+        "beatTitle": { "type": "string", "maxLength": 100 },
+        "producer": { "type": "string", "maxLength": 50 },
+        "milestone": { "type": "number" },
+        "milestoneLabel": { "type": "string", "maxLength": 50 },
+        "requiredPlays": { "type": "number" },
+        "actualPlaysWhenUnlocked": { "type": "number" },
+        "coverArtUrl": { "type": "string", "maxLength": 2048 },
+        "earnedDate": { "type": "string", "maxLength": 100 },
+        "earnedTimestamp": { "type": "number" },
+        "verificationStatus": { "type": "string", "enum": ["VERIFIED"] }
+      },
+      "required": ["plaqueId", "beatId", "milestone", "verificationStatus"]
     }
   },
   "firestore": {
@@ -97,6 +118,10 @@
     "/analytics/{eventId}": {
       "schema": "AnalyticsEvent",
       "description": "Collection of analytics events."
+    },
+    "/achievements/{achievementId}": {
+      "schema": "Achievement",
+      "description": "Collection of earned digital record plaques."
     }
   }
 }

@@ -14,6 +14,7 @@ import TrackPlayer from './TrackPlayer';
 import LiveSocialUnlock from './LiveSocialUnlock';
 import { StepWizard } from './uploader/StepWizard';
 import { FileStep } from './uploader/FileStep';
+import { extractWaveformData } from '../lib/waveformUtils';
 
 const steps = ['Files', 'Beat Details', 'Artwork', 'Metadata', 'Licensing', 'Store Preview', 'Review & Publish'];
 
@@ -272,7 +273,7 @@ const BeatUploader = React.memo(() => {
       const specs = `Key: ${formData.key || 'D# minor'} | BPM: ${formData.bpm || '119'}${formData.mood ? ` | Mood: ${formData.mood}` : ''}`;
       (window as any).updateStorefrontMetadata(
         formData.title || 'Dark hall',
-        formData.producer || 'Krypside',
+        formData.producer || 'NightRunna',
         formData.price || '30.00',
         formData.coverArtUrl || 'https://vercel.app',
         specs
@@ -517,7 +518,7 @@ const BeatUploader = React.memo(() => {
     playTrack({
       id: 'uploader_preview_' + Date.now(),
       title: formData.title || 'Beat Preview',
-      producer: formData.producer || 'Krypside',
+      producer: formData.producer || 'NightRunna',
       coverArtUrl: formData.coverArtUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
       audioUrl: streamAudioUrl,
       bpm: Number(formData.bpm) || 130,
@@ -545,18 +546,26 @@ const BeatUploader = React.memo(() => {
       finalAudioUrl = '';
     }
 
+    let waveformData: number[] = [];
+    if (uploadedFiles.length > 0) {
+      waveformData = await extractWaveformData(uploadedFiles[0]);
+    } else if (finalAudioUrl) {
+      waveformData = await extractWaveformData(finalAudioUrl);
+    }
+
     const finalRedirectUrl = formData.redirectUrl || `/player?track=${encodeURIComponent(finalTitle)}`;
 
     const newBeat: Beat = {
       id: 'human_beat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
       title: finalTitle,
-      producer: formData.producer || 'Krypside',
+      producer: formData.producer || 'NightRunna',
       bpm: Number(formData.bpm) || 130,
       key: formData.key || 'C Minor',
       mode: formData.mode || 'Minor',
       price: Number(formData.price) || 35.00,
       coverArtUrl: formData.coverArtUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
       audioUrl: finalAudioUrl,
+      waveformData,
       untaggedWavUrl: formData.untaggedWavUrl,
       stemsZipUrl: formData.stemsZipUrl,
       redirectUrl: finalRedirectUrl,
@@ -1809,7 +1818,7 @@ const BeatUploader = React.memo(() => {
                       className="artwork-view mx-auto" 
                     />
                     <h2 id="ui-title" className="text-xl font-bold text-white leading-tight mt-2">{formData.title || "Dark hall"}</h2>
-                    <p id="ui-artist" className="text-[#94a3b8] text-sm mt-1">by {formData.producer || "Krypside"}</p>
+                    <p id="ui-artist" className="text-[#94a3b8] text-sm mt-1">by {formData.producer || "NightRunna"}</p>
                     <p id="ui-specs" className="text-[#64748b] text-xs mt-1">
                       Key: {formData.key || 'D# minor'} | BPM: {formData.bpm || '119'}{formData.mood ? ` | Mood: ${formData.mood}` : ''}
                     </p>
@@ -1821,7 +1830,7 @@ const BeatUploader = React.memo(() => {
                     <a 
                       id="ui-checkout-btn" 
                       href={(() => {
-                        const paypalUser = localStorage.getItem('KRYPSIDE_PERSONAL_PAYPAL') || state.profile.paypalEmail || "YOUR_PAYPAL_USERNAME";
+                        const paypalUser = localStorage.getItem('NIGHTRUNNA_PERSONAL_PAYPAL') || state.profile.paypalEmail || "YOUR_PAYPAL_USERNAME";
                         const cleanPrice = parseFloat(formData.price as string || '30.00').toFixed(2);
                         if (paypalUser.includes('@')) {
                           return `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=${encodeURIComponent(paypalUser)}&amount=${cleanPrice}&currency_code=USD`;

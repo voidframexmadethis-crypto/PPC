@@ -52,7 +52,7 @@ export default function EditProfile() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await updateProfile(formData);
-    navigate('/profile/krypside');
+    navigate('/profile/nightrunna');
   };
 
   const platforms = [
@@ -72,7 +72,7 @@ export default function EditProfile() {
                 <h1 className="text-4xl font-black uppercase tracking-tighter mb-1">Producer Control Center</h1>
                 <p className="text-neutral-500 font-medium">Configure your premium artist brand</p>
             </div>
-            <button onClick={() => navigate('/profile/krypside')} className="flex items-center gap-2 px-6 py-3 bg-white text-black hover:bg-neutral-200 rounded-full font-bold text-sm transition-all shadow-lg hover:shadow-indigo-500/20">
+            <button onClick={() => navigate('/profile/nightrunna')} className="flex items-center gap-2 px-6 py-3 bg-white text-black hover:bg-neutral-200 rounded-full font-bold text-sm transition-all shadow-lg hover:shadow-indigo-500/20">
                 <Eye size={16} /> View Public Profile
             </button>
         </div>

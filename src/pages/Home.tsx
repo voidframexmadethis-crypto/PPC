@@ -24,7 +24,7 @@ export default function Home() {
   const [contractCheck, setContractCheck] = useState(false);
   const [contractSig, setContractSig] = useState('');
   const [clientEmail, setClientEmail] = useState('');
-  const [displayName, setDisplayName] = useState('KRYPSIDE');
+  const [displayName, setDisplayName] = useState('NIGHTRUNNA');
   const [bioDescription, setBioDescription] = useState('Pro Audio Loops & Instrumental Beats');
   const [profileImageUrl, setProfileImageUrl] = useState('');
   const [facebookLink, setFacebookLink] = useState('');
@@ -69,14 +69,14 @@ export default function Home() {
   };
 
   useEffect(() => {
-    const savedName = localStorage.getItem('KRYPSIDE_DISPLAY_NAME');
-    const savedBio = localStorage.getItem('KRYPSIDE_BIO');
-    const savedImg = localStorage.getItem('KRYPSIDE_IMAGE_URL');
-    const savedFacebook = localStorage.getItem('KRYPSIDE_FACEBOOK');
-    const savedInstagram = localStorage.getItem('KRYPSIDE_INSTAGRAM');
-    const savedYoutube = localStorage.getItem('KRYPSIDE_YOUTUBE');
-    const savedTwitter = localStorage.getItem('KRYPSIDE_TWITTER');
-    const savedPaypal = localStorage.getItem('KRYPSIDE_PERSONAL_PAYPAL');
+    const savedName = localStorage.getItem('NIGHTRUNNA_DISPLAY_NAME');
+    const savedBio = localStorage.getItem('NIGHTRUNNA_BIO');
+    const savedImg = localStorage.getItem('NIGHTRUNNA_IMAGE_URL');
+    const savedFacebook = localStorage.getItem('NIGHTRUNNA_FACEBOOK');
+    const savedInstagram = localStorage.getItem('NIGHTRUNNA_INSTAGRAM');
+    const savedYoutube = localStorage.getItem('NIGHTRUNNA_YOUTUBE');
+    const savedTwitter = localStorage.getItem('NIGHTRUNNA_TWITTER');
+    const savedPaypal = localStorage.getItem('NIGHTRUNNA_PERSONAL_PAYPAL');
     
     if (savedName) setDisplayName(savedName);
     if (savedBio) setBioDescription(savedBio);
@@ -92,19 +92,19 @@ export default function Home() {
   // Locks your personal profile & social media links straight into storage
   const handleProfileDataPersistence = async (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('KRYPSIDE_DISPLAY_NAME', displayName);
-    localStorage.setItem('KRYPSIDE_BIO', bioDescription);
-    localStorage.setItem('KRYPSIDE_IMAGE_URL', profileImageUrl);
-    localStorage.setItem('KRYPSIDE_FACEBOOK', facebookLink.trim());
-    localStorage.setItem('KRYPSIDE_INSTAGRAM', instagramLink.trim());
-    localStorage.setItem('KRYPSIDE_YOUTUBE', youtubeLink.trim());
-    localStorage.setItem('KRYPSIDE_TWITTER', twitterLink.trim());
-    localStorage.setItem('KRYPSIDE_PERSONAL_PAYPAL', paypalEmail.trim());
+    localStorage.setItem('NIGHTRUNNA_DISPLAY_NAME', displayName);
+    localStorage.setItem('NIGHTRUNNA_BIO', bioDescription);
+    localStorage.setItem('NIGHTRUNNA_IMAGE_URL', profileImageUrl);
+    localStorage.setItem('NIGHTRUNNA_FACEBOOK', facebookLink.trim());
+    localStorage.setItem('NIGHTRUNNA_INSTAGRAM', instagramLink.trim());
+    localStorage.setItem('NIGHTRUNNA_YOUTUBE', youtubeLink.trim());
+    localStorage.setItem('NIGHTRUNNA_TWITTER', twitterLink.trim());
+    localStorage.setItem('NIGHTRUNNA_PERSONAL_PAYPAL', paypalEmail.trim());
     
     setIsSaved(true);
     
     // 📡 Trigger Realtime UI Update Signal across Layout Sidebar
-    window.dispatchEvent(new Event('KRYPSIDE_PROFILE_UPDATE'));
+    window.dispatchEvent(new Event('NIGHTRUNNA_PROFILE_UPDATE'));
 
     setTimeout(() => setIsSaved(false), 3000);
   };
@@ -586,7 +586,7 @@ export default function Home() {
                     </label>
                     <input 
                       type="text" 
-                      placeholder="e.g. facebook.com/krypsideofficial" 
+                      placeholder="e.g. facebook.com/nightrunna" 
                       value={facebookLink}
                       onChange={(e) => setFacebookLink(e.target.value)}
                       style={{ width: '100%', background: '#060607', border: '1px solid #1c1c1f', padding: '12px', borderRadius: '6px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }} 
@@ -599,7 +599,7 @@ export default function Home() {
                     </label>
                     <input 
                       type="text" 
-                      placeholder="e.g. instagram.com/krypside" 
+                      placeholder="e.g. instagram.com/nightrunna" 
                       value={instagramLink}
                       onChange={(e) => setInstagramLink(e.target.value)}
                       style={{ width: '100%', background: '#060607', border: '1px solid #1c1c1f', padding: '12px', borderRadius: '6px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }} 
@@ -612,7 +612,7 @@ export default function Home() {
                     </label>
                     <input 
                       type="text" 
-                      placeholder="e.g. youtube.com/c/krypside" 
+                      placeholder="e.g. youtube.com/c/nightrunna" 
                       value={youtubeLink}
                       onChange={(e) => setYoutubeLink(e.target.value)}
                       style={{ width: '100%', background: '#060607', border: '1px solid #1c1c1f', padding: '12px', borderRadius: '6px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }} 
@@ -625,7 +625,7 @@ export default function Home() {
                     </label>
                     <input 
                       type="text" 
-                      placeholder="e.g. twitter.com/krypside" 
+                      placeholder="e.g. twitter.com/nightrunna" 
                       value={twitterLink}
                       onChange={(e) => setTwitterLink(e.target.value)}
                       style={{ width: '100%', background: '#060607', border: '1px solid #1c1c1f', padding: '12px', borderRadius: '6px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }} 

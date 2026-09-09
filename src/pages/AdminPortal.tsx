@@ -16,7 +16,7 @@ export default function AdminPortal() {
     setTimeout(() => {
       // Client-side authentication validation
       if (password.trim().length > 0) {
-        localStorage.setItem('KRYPSIDE_ADMIN_AUTH', 'true');
+        localStorage.setItem('NIGHTRUNNA_ADMIN_AUTH', 'true');
         navigate('/admin', { replace: true });
       } else {
         setError('Please enter the administrator security password.');
@@ -32,7 +32,7 @@ export default function AdminPortal() {
           <div className="w-16 h-16 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-center mb-4 text-indigo-400 shadow-lg">
             <Lock className="w-8 h-8" />
           </div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">Krypside Admin Portal</h1>
+          <h1 className="text-2xl font-extrabold text-white tracking-tight">NightRunna Admin Portal</h1>
           <p className="text-neutral-400 text-xs text-center mt-2">
             Restricted area. Authorized producer & uploader access only.
           </p>

@@ -1,8 +1,8 @@
-// 📡 KRYPSIDE SYSTEMS // PRODUCTION CONNECTION TO THE AWARD GROUP METRICS MAINMAIN
+// 📡 NIGHTRUNNA SYSTEMS // PRODUCTION CONNECTION TO THE AWARD GROUP METRICS MAINMAIN
 import { VercelRequest, VercelResponse } from '@vercel/node';
 
 // 🔒 CENTRAL BACKEND LEDGER CHASSIS: Tracks metrics from zero up in system memory cache
-let KRYPSIDE_STREAM_LEDGER = {
+let NIGHTRUNNA_STREAM_LEDGER = {
   globalCounterValue: 0, // Starts at zero and counts all the way up on every stream play
   certifiedMilestonesList: [] as number[],
   lastDispatchedToken: ""
@@ -31,9 +31,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // 🔑 THE AWARD GROUP OFFICIAL MANIFEST KEYS (Directly pointing to their New York matrix hub)
   const TARGET_API_URL = "https://theawardgroup.com";
-  const CLIENT_KEY     = "TAG_CLIENT_KRYPSIDE_PRO_9832";
-  const SECRET_TOKEN   = "TAG_SECRET_TOKEN_KRYP_7721834";
-  const LEDGER_ID      = "LEDGER_ROOM_KRYP_01";
+  const CLIENT_KEY     = "TAG_CLIENT_NIGHTRUNNA_PRO_9832";
+  const SECRET_TOKEN   = "TAG_SECRET_TOKEN_NRUN_7721834";
+  const LEDGER_ID      = "LEDGER_ROOM_NRUN_01";
 
   try {
     // 🚀 POST PATH: Intercepts player stream events from zero up and executes the multi-API handshake
@@ -41,13 +41,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { action, trackTitle } = req.body;
 
       if (action === 'INCREMENT_LIVE_STREAM') {
-        KRYPSIDE_STREAM_LEDGER.globalCounterValue += 1;
+        NIGHTRUNNA_STREAM_LEDGER.globalCounterValue += 1;
 
         // Auto-verify if your running play counter has crossed an explicit Award Group benchmark tier
-        const currentMilestoneNode = AWARD_GROUP_BENCHMARKS.find(t => KRYPSIDE_STREAM_LEDGER.globalCounterValue === t.limit);
+        const currentMilestoneNode = AWARD_GROUP_BENCHMARKS.find(t => NIGHTRUNNA_STREAM_LEDGER.globalCounterValue === t.limit);
         
         if (currentMilestoneNode) {
-          KRYPSIDE_STREAM_LEDGER.certifiedMilestonesList.push(currentMilestoneNode.level);
+          NIGHTRUNNA_STREAM_LEDGER.certifiedMilestonesList.push(currentMilestoneNode.level);
           
           // 📡 MULTI-API HANDSHAKE DISPATCH: Transmits all keys simultaneously to the destination server
           await fetch(TARGET_API_URL, {
@@ -59,28 +59,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              studio: "KRYPSIDE AUDIO LABS",
-              account_email: "krypside@gmail.com",
+              studio: "NIGHTRUNNA AUDIO LABS",
+              account_email: "nightrunna@gmail.com",
               plaque_specification: currentMilestoneNode.name,
-              total_plays_verified: KRYPSIDE_STREAM_LEDGER.globalCounterValue,
+              total_plays_verified: NIGHTRUNNA_STREAM_LEDGER.globalCounterValue,
               track_master_title: trackTitle || 'REDBONE CHOIR REMIX',
               timestamp: new Date().toISOString()
             })
           });
 
-          KRYPSIDE_STREAM_LEDGER.lastDispatchedToken = btoa(Date.now().toString());
+          NIGHTRUNNA_STREAM_LEDGER.lastDispatchedToken = btoa(Date.now().toString());
           return res.status(201).json({
             success: true,
             status: "MULTI_API_HANDSHAKE_VERIFIED",
             award_level_tier: currentMilestoneNode.level,
-            handshake_token: KRYPSIDE_STREAM_LEDGER.lastDispatchedToken
+            handshake_token: NIGHTRUNNA_STREAM_LEDGER.lastDispatchedToken
           });
         }
 
         return res.status(200).json({
           success: true,
           status: "STREAM_COUNT_INCREMENTED_NATIVELY",
-          current_total: KRYPSIDE_STREAM_LEDGER.globalCounterValue
+          current_total: NIGHTRUNNA_STREAM_LEDGER.globalCounterValue
         });
       }
     }
@@ -92,8 +92,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         status: "MULTI_API_CONNECTION_STABLE",
         config: { url_bound: true, client_bound: true, secret_bound: true, ledger_bound: true },
         data: {
-          current_streams: KRYPSIDE_STREAM_LEDGER.globalCounterValue,
-          unlocked_milestones: KRYPSIDE_STREAM_LEDGER.certifiedMilestonesList
+          current_streams: NIGHTRUNNA_STREAM_LEDGER.globalCounterValue,
+          unlocked_milestones: NIGHTRUNNA_STREAM_LEDGER.certifiedMilestonesList
         }
       });
     }

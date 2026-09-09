@@ -1,19 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { useAuth } from '../context/AuthContext';
-import { auth } from '../lib/firebase';
-import { Lock, BarChart3, DollarSign, TrendingUp, PlayCircle, Share2, ThumbsUp, ThumbsDown, Music, UploadCloud, Download, Eye, Users, Mail, Bell, RefreshCw, Send, CheckCircle2, Volume2, Upload, LogOut, Disc, FileText, Trash2, Tag, Award } from 'lucide-react';
+import { auth, db } from '../lib/firebase';
+import { collection, query, orderBy, onSnapshot, updateDoc, doc, writeBatch } from 'firebase/firestore';
+import { Lock, LayoutDashboard, Menu, Library, ShoppingCart, ShoppingBag, Settings, BarChart3, DollarSign, TrendingUp, PlayCircle, Share2, ThumbsUp, ThumbsDown, Music, UploadCloud, Download, Eye, Users, Mail, Bell, RefreshCw, Send, CheckCircle2, Volume2, Upload, LogOut, Disc, FileText, Trash2, Tag, Award, ShieldCheck, CreditCard, Video } from 'lucide-react';
 import Uploader from './Uploader';
 import BeatPackUploader from '../components/BeatPackUploader';
 import { PlayerManagement } from '../components/admin/PlayerManagement';
 import { FlashSaleStudio } from '../components/admin/FlashSaleStudio';
+import { PushAlertsModule, ISRCModule, YouTubeManagerModule, PublishingModule, VaultsModule } from '../components/admin/RestoredAdminModules';
+import { VideoAdMaker } from '../components/admin/VideoAdMaker';
+import { AnalyticsDashboard } from '../components/admin/AnalyticsDashboard';
+import { SubscriptionsModule } from '../components/admin/SubscriptionsModule';
 import { PlaqueStudio } from '../components/admin/PlaqueStudio';
+import { AdminAchievements } from '../components/admin/AdminAchievements';
+import { HallOfFame } from '../components/plaque/HallOfFame';
 
 export default function Admin() {
   const { state, updateProfile, resetAnalytics } = useStore();
   const { user } = useAuth();
-  const isAdmin = localStorage.getItem('KRYPSIDE_ADMIN_AUTH') === 'true' || user?.email === 'glennbucky@gmail.com';
+  const isAdmin = localStorage.getItem('NIGHTRUNNA_ADMIN_AUTH') === 'true' || user?.email === 'krypside@gmail.com';
   
   const [realAnalytics, setRealAnalytics] = useState<any>(null);
 
@@ -39,8 +46,8 @@ export default function Admin() {
 
   useEffect(() => {
     // Ensure admin auth is saved if accessing via email
-    if (user?.email === 'glennbucky@gmail.com' && localStorage.getItem('KRYPSIDE_ADMIN_AUTH') !== 'true') {
-      localStorage.setItem('KRYPSIDE_ADMIN_AUTH', 'true');
+    if (user?.email === 'krypside@gmail.com' && localStorage.getItem('NIGHTRUNNA_ADMIN_AUTH') !== 'true') {
+      localStorage.setItem('NIGHTRUNNA_ADMIN_AUTH', 'true');
     }
   }, [user]);
 
@@ -48,11 +55,41 @@ export default function Admin() {
     return <Navigate to="/" replace />;
   }
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'subscribers' | 'voicetag' | 'uploader' | 'packUploader' | 'plaque' | 'playerManagement' | 'flashSale'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'subscribers' | 'voicetag' | 'uploader' | 'packUploader' | 'plaque' | 'playerManagement' | 'flashSale' | 'push' | 'isrc' | 'videos' | 'videoAds' | 'publishing' | 'subscriptions' | 'salesAnalytics' | 'engagementAnalytics' | 'vaults' | 'iaUploadCenter' | 'notifications' | 'orders' | 'analytics' | 'settings'>('dashboard');
   const [subscribers, setSubscribers] = useState<{ email: string; name: string; subscribedAt: string; notifyOnBeatDrop: boolean }[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [notifications, setNotifications] = useState<{ id: string; title: string; body: string; sentAt: string; beatTitle?: string }[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifFilter, setNotifFilter] = useState<'ALL' | 'SALE' | 'MILESTONE' | 'DOWNLOAD' | 'TRENDING' | 'SUBSCRIBER'>('ALL');
   const [loadingSubscribers, setLoadingSubscribers] = useState(false);
+
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      const handleSwMessage = (event: MessageEvent) => {
+        if (event.data && event.data.type === 'NAVIGATE' && event.data.url) {
+          const rawUrl = event.data.url;
+          const cleanTab = rawUrl.replace('/admin/', '').replace('/admin', 'dashboard');
+          if (cleanTab) {
+            setActiveTab(cleanTab as any);
+          }
+        }
+      };
+      navigator.serviceWorker.addEventListener('message', handleSwMessage);
+      return () => navigator.serviceWorker.removeEventListener('message', handleSwMessage);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    const q = query(collection(db, 'notifications'), orderBy('timestamp', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const notifs: any[] = [];
+      snapshot.forEach(doc => notifs.push({ id: doc.id, ...doc.data() }));
+      setNotifications(notifs);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
   const [plaqueArtist, setPlaqueArtist] = useState('');
   const [plaqueTitle, setPlaqueTitle] = useState('');
   const [plaqueShipping, setPlaqueShipping] = useState('');
@@ -95,690 +132,410 @@ export default function Admin() {
   const totalDownloads = state.beats.reduce((sum, beat) => sum + (beat.downloads || 0), 0);
 
   return (
-    <div className="w-full max-w-6xl mx-auto pb-20 animate-in fade-in duration-500">
-      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center">
-            <BarChart3 className="w-8 h-8 mr-3 text-indigo-500" />
-            Admin Dashboard
-          </h1>
-          <p className="text-neutral-400 mt-2">Manage your catalog and view analytics.</p>
+    <div className="flex h-screen bg-[#050505] text-white overflow-hidden animate-in fade-in duration-500">
+      {/* Mobile Header */}
+      <div className="lg:hidden absolute top-0 left-0 right-0 h-16 bg-neutral-950 border-b border-neutral-800 flex items-center justify-between px-4 z-50">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-indigo-500" />
+          <span className="font-bold">Admin Portal</span>
         </div>
-        <div className="flex items-center gap-4">
-      <nav className="flex flex-wrap gap-2 mb-8 p-1 bg-neutral-950 border border-neutral-800 rounded-2xl w-fit">
-        {[
-          { id: 'dashboard', label: 'Command Center', icon: BarChart3 },
-          { id: 'subscribers', label: 'Roster', icon: Users },
-          { id: 'voicetag', label: 'Tag', icon: Volume2 },
-          { id: 'uploader', label: 'Upload', icon: UploadCloud },
-          { id: 'packUploader', label: 'Beat Packs', icon: FileText },
-          { id: 'playerManagement', label: 'Player Mgt', icon: Trash2 },
-          { id: 'flashSale', label: 'Flash Sale', icon: Tag },
-          { id: 'plaque', label: 'Plaques', icon: Award },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button 
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center gap-2 ${
-                activeTab === tab.id 
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' 
-                  : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          )
-        })}
-      </nav>
+        <div className="flex items-center gap-2">
           <button 
-            onClick={() => {
-              localStorage.removeItem('KRYPSIDE_ADMIN_AUTH');
-              window.location.href = '/admin-portal';
-            }}
-            className="px-6 py-3 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-xl text-sm font-bold uppercase tracking-widest transition-all flex items-center gap-2 text-red-400 hover:text-red-300"
+            onClick={() => setActiveTab('notifications')} 
+            className="p-2 bg-neutral-900 border border-neutral-800 rounded-xl relative text-neutral-300 hover:text-white transition-all"
+            title="Notifications"
           >
-            <Lock className="w-4 h-4" />
-            Lock
+            <Bell className="w-5 h-5 text-indigo-400" />
+            {notifications.filter(n => !n.read).length > 0 && (
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 text-white font-extrabold text-[9px] rounded-full border-2 border-neutral-950 flex items-center justify-center">
+                {notifications.filter(n => !n.read).length}
+              </span>
+            )}
+          </button>
+          <button onClick={() => setActiveTab(activeTab === 'mobile-menu' ? 'dashboard' : 'mobile-menu')} className="p-2 bg-neutral-900 border border-neutral-800 rounded-xl">
+            <Menu className="w-5 h-5" />
           </button>
         </div>
       </div>
 
-      {activeTab === 'voicetag' ? (
-        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-8 max-w-2xl mx-auto shadow-xl">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center">
-              <Volume2 className="w-6 h-6 text-indigo-400" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-white">Custom Website Voice Tag</h2>
-              <p className="text-neutral-400 text-sm">Upload your producer voice tag (.mp3 or .wav). It will automatically play every single time the website loads.</p>
-            </div>
+      {/* Sidebar */}
+      <div className={`fixed inset-y-0 left-0 z-40 w-64 bg-neutral-950 border-r border-neutral-900 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${activeTab === 'mobile-menu' ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex flex-col h-full">
+          <div className="h-20 flex items-center px-6 border-b border-neutral-900">
+            <BarChart3 className="w-6 h-6 text-indigo-500 mr-3" />
+            <h2 className="text-xl font-extrabold tracking-tight">Admin</h2>
           </div>
+          
+          <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
+            {[
+              { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+              { id: 'beats', label: 'Beats', icon: Music },
+              { id: 'collections', label: 'Collections', icon: Library },
+              { id: 'orders', label: 'Orders', icon: DollarSign },
+              { id: 'merch', label: 'Merch', icon: ShoppingBag },
+              { id: 'analytics', label: 'Analytics', icon: TrendingUp },
+              { id: 'achievements', label: 'Achievements', icon: Award },
+              { id: 'hall-of-fame', label: 'Hall of Fame', icon: ShieldCheck },
+              { id: 'notifications', label: 'Notifications', icon: Bell },
+              { id: 'settings', label: 'Settings', icon: Settings },
+            ].map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id || (activeTab === 'mobile-menu' && tab.id === 'dashboard');
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`w-full flex items-center px-4 py-3 text-sm font-bold rounded-xl transition-all ${
+                    isActive 
+                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                      : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
+                  }`}
+                >
+                  <div className="relative">
+                    <Icon className="w-5 h-5 mr-3" />
+                    {tab.id === 'notifications' && notifications.filter(n => !n.read).length > 0 && (
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-neutral-950"></span>
+                    )}
+                  </div>
+                  {tab.label}
+                </button>
+              );
+            })}
+          </nav>
 
-          <div className="space-y-6">
-            {!state.profile.voiceTagUrl ? (
-              <div className="relative p-6 border-2 border-dashed border-neutral-700 rounded-xl text-center hover:border-indigo-500 transition-colors bg-neutral-950/50 cursor-pointer overflow-hidden">
-                <Upload className="w-8 h-8 text-neutral-400 mx-auto mb-3" />
-                <label className="block text-sm font-medium text-white cursor-pointer pointer-events-none">
-                  <span>Choose Voice Tag Audio File</span>
-                </label>
-                <p className="text-xs text-neutral-500 mt-2 pointer-events-none">MP3, WAV, or AAC audio files supported. Replaces AI speech synthesis.</p>
-                <input
-                  type="file"
-                  accept="audio/*,.mp3,.wav,.aac,.m4a"
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = async () => {
-                      const base64Url = reader.result as string;
-                      await updateProfile({ voiceTagUrl: base64Url });
-                      alert("✅ Custom voice tag uploaded successfully! Uploader has now disappeared and your custom voice tag is permanent. It will now play automatically every single time the website loads.");
-                      const audio = new Audio(base64Url);
-                      audio.play().catch(() => {});
-                    };
-                    reader.readAsDataURL(file);
-                  }}
+          <div className="p-4 border-t border-neutral-900">
+            <button
+              onClick={() => {
+                window.location.href = '/';
+              }}
+              className="w-full flex items-center justify-center px-4 py-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-bold rounded-xl transition-all text-sm mb-3"
+            >
+              ← Back to Store
+            </button>
+            <button
+              onClick={() => {
+                localStorage.removeItem('NIGHTRUNNA_ADMIN_AUTH');
+                window.location.href = '/admin-portal';
+              }}
+              className="w-full flex items-center justify-center px-4 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold rounded-xl transition-all text-sm"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Lock Console
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto bg-[#050505] pt-20 lg:pt-0">
+        <div className="max-w-6xl mx-auto p-6 md:p-10">
+          
+          {/* Top Bar Navigation Header */}
+          <div className="hidden lg:flex justify-between items-center mb-8 pb-4 border-b border-neutral-900">
+            <div className="flex items-center gap-2 text-xs font-mono text-neutral-500 uppercase tracking-widest">
+              <span>Admin Portal</span>
+              <span>/</span>
+              <span className="text-indigo-400 font-bold">{activeTab.toUpperCase()}</span>
+            </div>
+            <button
+              onClick={() => setActiveTab('notifications')}
+              className="flex items-center gap-2.5 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-xl text-sm font-bold text-white transition-all relative shadow-lg shadow-black/40"
+            >
+              <Bell className="w-4 h-4 text-indigo-400" />
+              <span>Notifications</span>
+              {notifications.filter(n => !n.read).length > 0 && (
+                <span className="px-2 py-0.5 bg-red-500 text-white font-extrabold text-xs rounded-full ml-0.5">
+                  {notifications.filter(n => !n.read).length}
+                </span>
+              )}
+            </button>
+          </div>
+          
+          {/* DASHBOARD TAB */}
+          {(activeTab === 'dashboard' || activeTab === 'mobile-menu') && (
+            <div className="space-y-8">
+              <div>
+                <h1 className="text-3xl font-bold text-white tracking-tight">Dashboard Overview</h1>
+                <p className="text-neutral-400 mt-2">Welcome back to the command center.</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                 <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+                    <p className="text-sm text-neutral-400 font-bold uppercase tracking-wider mb-2">Total Streams</p>
+                    <p className="text-3xl font-extrabold text-white">{displayPlays.toLocaleString()}</p>
+                 </div>
+                 <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+                    <p className="text-sm text-neutral-400 font-bold uppercase tracking-wider mb-2">Gross Earnings</p>
+                    <p className="text-3xl font-extrabold text-emerald-400">${totalEarnings.toLocaleString()}</p>
+                 </div>
+                 <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+                    <p className="text-sm text-neutral-400 font-bold uppercase tracking-wider mb-2">Catalog Size</p>
+                    <p className="text-3xl font-extrabold text-indigo-400">{state.beats.length}</p>
+                 </div>
+                 <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+                    <p className="text-sm text-neutral-400 font-bold uppercase tracking-wider mb-2">Subscribers</p>
+                    <p className="text-3xl font-extrabold text-fuchsia-400">{subscribers.length}</p>
+                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* BEATS TAB */}
+          {activeTab === 'beats' && (
+            <div className="space-y-12">
+              <div>
+                <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Beat Management</h1>
+                <p className="text-neutral-400">Upload, edit, and organize your instrumental catalog.</p>
+              </div>
+              
+              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+                <h2 className="text-xl font-bold text-white mb-6">Uploader</h2>
+                <Uploader />
+              </div>
+
+              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+                <h2 className="text-xl font-bold text-white mb-6">Player Management</h2>
+                <PlayerManagement state={state} />
+              </div>
+
+              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+                <h2 className="text-xl font-bold text-white mb-6">Beat Packs</h2>
+                <BeatPackUploader />
+              </div>
+              
+              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+                <h2 className="text-xl font-bold text-white mb-6">ISRC & Metadata</h2>
+                <ISRCModule />
+              </div>
+            </div>
+          )}
+
+          {/* COLLECTIONS TAB */}
+          {activeTab === 'collections' && (
+            <div className="space-y-12">
+              <div>
+                <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Collections & Sales</h1>
+                <p className="text-neutral-400">Manage flash sales, vaults, and private links.</p>
+              </div>
+              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+                <h2 className="text-xl font-bold text-white mb-6">Flash Sales</h2>
+                <FlashSaleStudio />
+              </div>
+              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+                <h2 className="text-xl font-bold text-white mb-6">Private Vaults</h2>
+                <VaultsModule />
+              </div>
+            </div>
+          )}
+
+          {/* ORDERS TAB */}
+          {activeTab === 'orders' && (
+            <div className="space-y-12">
+              <div>
+                <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Orders & Subscriptions</h1>
+                <p className="text-neutral-400">View recent transactions and active subscriptions.</p>
+              </div>
+              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+                <h2 className="text-xl font-bold text-white mb-6">Active Subscriptions</h2>
+                <SubscriptionsModule />
+              </div>
+            </div>
+          )}
+
+          {/* MERCH TAB */}
+          {activeTab === 'merch' && (
+            <div className="space-y-12">
+              <div>
+                <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Merchandise & Awards</h1>
+                <p className="text-neutral-400">Manage plaques and physical product sales.</p>
+              </div>
+              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+                <PlaqueStudio 
+                   plaqueArtist={plaqueArtist}
+                   plaqueTitle={plaqueTitle}
+                   plaqueShipping={plaqueShipping}
+                   setPlaqueArtist={setPlaqueArtist}
+                   setPlaqueTitle={setPlaqueTitle}
+                   setPlaqueShipping={setPlaqueShipping}
+                   isAwardEligible={isAwardEligible}
+                   nextMilestone={nextMilestone}
+                   reachedMilestones={reachedMilestones}
                 />
               </div>
-            ) : null}
+            </div>
+          )}
 
-            {state.profile.voiceTagUrl ? (
-              <div className="bg-neutral-950 p-6 rounded-xl border border-neutral-800 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center">
-                    <CheckCircle2 className="w-6 h-6 text-emerald-400" />
-                  </div>
-                  <div>
-                    <div className="text-base font-bold text-white">Permanent Custom Voice Tag Active</div>
-                    <div className="text-xs text-neutral-400">Uploader has disappeared. Voice tag plays automatically on every website load.</div>
-                  </div>
+          {/* ANALYTICS TAB */}
+          {activeTab === 'analytics' && (
+            <div className="space-y-8">
+              <div>
+                <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Store Analytics</h1>
+                <p className="text-neutral-400">Real-time engagement, streams, and revenue data.</p>
+              </div>
+              <AnalyticsDashboard />
+            </div>
+          )}
+
+          {/* ACHIEVEMENTS TAB */}
+          {activeTab === 'achievements' && (
+            <AdminAchievements />
+          )}
+
+          {/* HALL OF FAME TAB */}
+          {activeTab === 'hall-of-fame' && (
+            <HallOfFame />
+          )}
+
+          
+          {activeTab === 'notifications' && (
+            <div className="space-y-8 animate-in fade-in duration-300">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-3xl font-bold text-white tracking-tight">Notification Center</h1>
+                  <p className="text-neutral-400 mt-1 text-sm">Store activity alerts, stream benchmarks, and subscriber logs.</p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => {
-                      const audio = new Audio(state.profile.voiceTagUrl);
-                      audio.play().catch(err => alert("Playback error: " + err.message));
-                    }}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm"
-                  >
-                    <PlayCircle className="w-4 h-4" />
-                    Test Play
-                  </button>
-                  <button
-                    onClick={async () => {
-                      if (confirm("Reset permanent voice tag? This will bring back the uploader so you can set a new one.")) {
-                        await updateProfile({ voiceTagUrl: '' });
-                      }
-                    }}
-                    className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-red-400 rounded-lg text-xs font-semibold"
-                  >
-                    Reset / Change
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="text-xs text-neutral-400 bg-neutral-950 p-4 rounded-lg border border-neutral-800 text-center">
-                No custom voice tag uploaded yet. Upload your audio file above to set your permanent voice tag.
-              </div>
-            )}
-          </div>
-        </div>
-      ) : activeTab === 'packUploader' ? (
-        <div className="animate-in fade-in duration-300">
-           <BeatPackUploader />
-        </div>
-      ) : activeTab === 'plaque' ? (
-        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-8 max-w-2xl mx-auto shadow-xl">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-amber-500/20 rounded-xl flex items-center justify-center">
-              <Disc className="w-6 h-6 text-amber-400" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-white">Music Awards Group Fulfillment</h2>
-              <p className="text-neutral-400 text-sm">
-                {isAwardEligible 
-                  ? "Congratulations! You have reached a milestone and are eligible for a FREE plaque."
-                  : "Manually submit a milestone award plaque for manufacturing."}
-              </p>
-            </div>
-          </div>
-
-          <div style={{ background: '#191922', border: isAwardEligible ? '2px solid #00ffcc' : '2px solid #FFC439', borderRadius: '12px', padding: '20px', fontFamily: 'sans-serif', boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
-                  <div style={{ fontSize: '32px', background: isAwardEligible ? 'rgba(0, 255, 204, 0.1)' : 'rgba(255, 196, 57, 0.1)', padding: '10px', borderRadius: '8px' }}>
-                    {isAwardEligible ? reachedMilestones[reachedMilestones.length - 1].icon : '💿'}
+                {notifications.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => {
+                        const batch = writeBatch(db);
+                        notifications.filter(n => !n.read).forEach(n => {
+                          batch.update(doc(db, 'notifications', n.id), { read: true });
+                        });
+                        batch.commit();
+                      }}
+                      className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-xs font-bold text-white border border-neutral-800 rounded-xl transition-all"
+                    >
+                      Mark all read
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const batch = writeBatch(db);
+                        notifications.filter(n => n.read).forEach(n => {
+                          batch.delete(doc(db, 'notifications', n.id));
+                        });
+                        batch.commit();
+                      }}
+                      className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-xs font-bold text-red-400 border border-red-500/20 rounded-xl transition-all"
+                    >
+                      Clear read
+                    </button>
                   </div>
-                  <div>
-                      <h4 style={{ margin: 0, color: '#FFF', fontSize: '16px', fontWeight: 'bold', letterSpacing: '0.5px' }}>
-                        {isAwardEligible ? `CLAIM YOUR ${reachedMilestones[reachedMilestones.length - 1].name.toUpperCase()}` : 'ORDER PHYSICAL RECORD PLAQUE PLAN'}
-                      </h4>
-                      <p style={{ margin: '3px 0 0 0', fontSize: '12px', color: '#9292a6' }}>Custom laser-etched studio plaque shipped straight to your door.</p>
-                  </div>
-              </div>
-
-              <div style={{ background: '#111116', border: '1px solid #242432', borderRadius: '8px', padding: '12px', marginBottom: '18px', fontSize: '13px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: '#9292a6' }}>
-                      <span>Custom Laser Plaque Manufacturing</span>
-                      <span style={{ textDecoration: isAwardEligible ? 'line-through' : 'none' }}>$125.00</span>
-                  </div>
-                  {isAwardEligible && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: '#00ffcc' }}>
-                        <span>Milestone Discount</span>
-                        <span>-$125.00</span>
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', color: isAwardEligible ? '#00ffcc' : '#FFC439', paddingTop: '6px', borderTop: '1px solid #242432' }}>
-                      <span>Total Plan Fulfillment Price:</span>
-                      <span>{isAwardEligible ? 'FREE (Awarded)' : '$125.00 USD'}</span>
-                  </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
-                  <input type="text" id="plaque-artist" placeholder="Artist Name on Plaque" style={{ width: '100%', padding: '10px', background: '#252529', border: '1px solid #3f3f46', borderRadius: '6px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }} value={plaqueArtist} onChange={(e) => setPlaqueArtist(e.target.value)} />
-                  <input type="text" id="plaque-title" placeholder="Song Title on Plaque" style={{ width: '100%', padding: '10px', background: '#252529', border: '1px solid #3f3f46', borderRadius: '6px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }} value={plaqueTitle} onChange={(e) => setPlaqueTitle(e.target.value)} />
-              </div>
-              <input type="text" id="plaque-shipping" placeholder="Full Delivery Shipping Address" style={{ width: '100%', padding: '10px', background: '#252529', border: '1px solid #3f3f46', borderRadius: '6px', color: '#fff', fontSize: '13px', marginBottom: '15px', boxSizing: 'border-box' }} value={plaqueShipping} onChange={(e) => setPlaqueShipping(e.target.value)} />
-
-              <button 
-                  onClick={() => {
-                      if (!plaqueArtist || !plaqueTitle || !plaqueShipping) {
-                          alert("Please fill out the Artist Name, Song Title, and Delivery Address.");
-                          return;
-                      }
-                      
-                      // 🛸 Alien Laser Sound for fulfillment
-                      const laserAudio = new Audio("https://www.soundjay.com/sci-fi/sounds/sci-fi-laser-1.mp3");
-                      laserAudio.volume = 0.5;
-                      laserAudio.play().catch(() => {});
-
-                      const finalPlaquePayload = {
-                          transactionId: "ADMIN_" + Date.now(),
-                          buyerEmail: "admin@krypside.com",
-                          engravingArtistName: plaqueArtist,
-                          engravingSongTitle: plaqueTitle,
-                          deliveryDestination: plaqueShipping,
-                          supplierTarget: "The Award Group - Music Department",
-                          orderStatus: isAwardEligible ? "Award Claimed - Pending Manufacture" : "Paid - Pending Manufacture",
-                          isMilestoneAward: isAwardEligible
-                      };
-                      
-                      console.log("🚀 DISPATCHING AWARD METRICS TO MANUFACTURING API:", finalPlaquePayload);
-                      alert(`${isAwardEligible ? 'Milestone Award Claimed!' : 'Plaque Plan Activated!'} Award order successfully submitted for printing under name: ${finalPlaquePayload.engravingArtistName}`);
-                      
-                      setPlaqueArtist('');
-                      setPlaqueTitle('');
-                      setPlaqueShipping('');
-                  }}
-                  style={{ width: '100%', background: isAwardEligible ? '#00ffcc' : '#ffc439', color: '#000', border: 'none', padding: '14px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px', textTransform: 'uppercase', letterSpacing: '1px' }}
-              >
-                  {isAwardEligible ? 'Claim My Free Milestone Plaque' : 'Submit Order to Manufacturing'}
-              </button>
-          </div>
-        </div>
-      ) : activeTab === 'dashboard' ? (
-        <AdminDashboardOverview analytics={{ totalEarnings: 0, totalPlays: state.analytics.totalPlays }} state={state} />
-      ) : activeTab === 'playerManagement' ? (
-        <PlayerManagement />
-      ) : activeTab === 'flashSale' ? (
-        <FlashSaleStudio />
-      ) : activeTab === 'plaque' ? (
-        <PlaqueStudio />
-      ) : activeTab === 'subscribers' ? (
-        <div className="space-y-6 animate-in fade-in duration-300">
-          {/* Header Row */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-neutral-900 border border-neutral-800 p-4 rounded-xl gap-4">
-            <div>
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Users className="w-5 h-5 text-indigo-400" />
-                Subscriber Analytics
-              </h2>
-              <p className="text-xs text-neutral-400 mt-1">Real-time newsletter metrics & artist databases.</p>
-            </div>
-            
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search artists..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-neutral-950 border border-neutral-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-64"
-              />
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-6">
-          <Uploader />
-        </div>
-      )}
-
-            <div className="bg-neutral-950/80 border border-neutral-800 rounded-3xl p-6 relative overflow-hidden shadow-xl hover:border-blue-500/50 transition-all">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
-              <div className="flex items-center justify-between mb-4 relative z-10">
-                <h3 className="text-neutral-500 font-bold uppercase tracking-widest text-[10px]">Unique Visitors</h3>
-                <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
-                    <Users className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-4xl font-black text-white font-mono tracking-tighter relative z-10">{realAnalytics?.uniqueVisitors || 0}</div>
-              <div className="text-[9px] text-blue-400 font-bold uppercase tracking-widest mt-2 relative z-10">Verified Unique</div>
-            </div>
-
-            <div className="bg-neutral-950/80 border border-neutral-800 rounded-3xl p-6 relative overflow-hidden shadow-xl hover:border-emerald-500/50 transition-all">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
-              <div className="flex items-center justify-between mb-4 relative z-10">
-                <h3 className="text-neutral-500 font-bold uppercase tracking-widest text-[10px]">Total Earnings</h3>
-                <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
-                    <DollarSign className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-4xl font-black text-white font-mono tracking-tighter relative z-10">${totalEarnings.toFixed(2)}</div>
-              <div className="text-[9px] text-emerald-400 font-bold uppercase tracking-widest mt-2 relative z-10">Direct Revenue</div>
-            </div>
-
-            <div className="bg-neutral-950/80 border border-neutral-800 rounded-3xl p-6 relative overflow-hidden shadow-xl hover:border-indigo-500/50 transition-all">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
-              <div className="flex items-center justify-between mb-4 relative z-10">
-                <h3 className="text-neutral-500 font-bold uppercase tracking-widest text-[10px]">Total Plays</h3>
-                <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
-                    <PlayCircle className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-4xl font-black text-white font-mono tracking-tighter relative z-10">{state.analytics.totalPlays}</div>
-              <div className="text-[9px] text-indigo-400 font-bold uppercase tracking-widest mt-2 relative z-10">Stream Events</div>
-            </div>
-
-            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-neutral-400 font-medium text-sm lg:text-base">Engagement</h3>
-                <ThumbsUp className="w-5 h-5 text-emerald-400" />
-              </div>
-              <div className="text-3xl lg:text-4xl font-bold text-white font-mono">{realAnalytics?.totalLikes || 0}</div>
-              <div className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider mt-1">Positive Feedback</div>
-            </div>
-
-            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-neutral-400 font-medium text-sm lg:text-base">Total Shares</h3>
-                <Share2 className="w-5 h-5 text-blue-400" />
-              </div>
-              <div className="text-3xl lg:text-4xl font-bold text-white font-mono">{realAnalytics?.totalShares || 0}</div>
-              <div className="text-[10px] text-blue-400 font-semibold uppercase tracking-wider mt-1">Social Handshakes</div>
-            </div>
-
-            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-neutral-400 font-medium text-sm lg:text-base">Downloads</h3>
-                <Download className="w-5 h-5 text-purple-400" />
-              </div>
-              <div className="text-3xl lg:text-4xl font-bold text-white font-mono">{realAnalytics?.totalDownloads || 0}</div>
-              <div className="text-[10px] text-purple-400 font-semibold uppercase tracking-wider mt-1">Offline Beat Leases</div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden shadow-xl">
-              <div className="px-6 py-4 border-b border-neutral-800 bg-neutral-950/20 flex justify-between items-center">
-                <h2 className="text-xl font-bold flex items-center gap-2">
-                  <Disc className="w-5 h-5 text-amber-400" />
-                  Milestone Awards Progress
-                </h2>
-                {isAwardEligible && (
-                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold animate-pulse">
-                    AWARDS UNLOCKED
-                  </span>
                 )}
               </div>
-              <div className="p-6">
-                <div className="flex justify-between items-end mb-4">
-                  <div>
-                    <div className="text-sm text-neutral-400">Total Lifetime Streams</div>
-                    <div className="text-4xl font-black text-white font-mono">{totalPlays.toLocaleString()}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs text-neutral-500 uppercase tracking-widest font-bold">Current Status</div>
-                    <div className="text-lg font-bold text-amber-400">
-                      {reachedMilestones.length > 0 ? reachedMilestones[reachedMilestones.length - 1].name : 'Rising Artist'}
-                    </div>
-                  </div>
-                </div>
 
-                <div className="space-y-6">
-                  {nextMilestone && (
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-bold text-neutral-300 flex items-center gap-2">
-                          Next Milestone: {nextMilestone.name}
-                        </span>
-                        <span className="text-xs font-mono text-neutral-500">
-                          {totalPlays} / {nextMilestone.goal}
-                        </span>
-                      </div>
-                      <div className="w-full h-3 bg-neutral-950 rounded-full border border-neutral-800 overflow-hidden p-0.5">
-                        <div 
-                          className="h-full rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(255,196,57,0.3)]"
-                          style={{ 
-                            width: `${Math.min(100, (totalPlays / nextMilestone.goal) * 100)}%`,
-                            backgroundColor: nextMilestone.color
-                          }}
-                        ></div>
-                      </div>
-                      <div className="text-[10px] text-neutral-500 mt-2 text-center italic">
-                        {nextMilestone.goal - totalPlays} more streams until your next official physical plaque award.
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-5 gap-2">
-                    {milestones.map((m) => {
-                      const isReached = totalPlays >= m.goal;
-                      return (
-                        <div 
-                          key={m.id} 
-                          className={`aspect-square rounded-lg border flex flex-col items-center justify-center relative group transition-all duration-500 ${isReached ? 'bg-neutral-800/50 border-neutral-700 shadow-lg scale-105' : 'bg-neutral-950 border-neutral-900 opacity-40'}`}
-                        >
-                          <div className={`text-2xl mb-1 ${isReached ? 'animate-bounce' : ''}`}>{m.icon}</div>
-                          <div className="text-[8px] font-bold uppercase tracking-tighter text-center px-1" style={{ color: isReached ? m.color : '#666' }}>
-                            {m.id}
-                          </div>
-                          {isReached && (
-                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-neutral-900 shadow-sm z-10"></div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <button 
-                    onClick={() => setActiveTab('plaque')}
-                    className={`w-full py-3 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${isAwardEligible ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_15px_rgba(5,150,105,0.4)]' : 'bg-neutral-800 text-neutral-500 cursor-not-allowed'}`}
+              {/* Category Filters */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-neutral-900">
+                {[
+                  { id: 'ALL', label: 'All Alerts' },
+                  { id: 'SALE', label: 'Sales' },
+                  { id: 'MILESTONE', label: 'Milestones' },
+                  { id: 'DOWNLOAD', label: 'Downloads' },
+                  { id: 'TRENDING', label: 'Trending' },
+                  { id: 'SUBSCRIBER', label: 'Subscribers' },
+                ].map(f => (
+                  <button
+                    key={f.id}
+                    onClick={() => setNotifFilter(f.id as any)}
+                    className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap ${
+                      notifFilter === f.id
+                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                        : 'bg-neutral-900/80 text-neutral-400 hover:text-white hover:bg-neutral-800'
+                    }`}
                   >
-                    {isAwardEligible ? 'Claim My Physical Milestone Awards' : 'Unlock Milestones to Claim Awards'}
+                    {f.label}
                   </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden shadow-xl">
-              <div className="px-6 py-4 border-b border-neutral-800 bg-neutral-950/20">
-                <h2 className="text-xl font-bold flex items-center gap-2 text-indigo-400">
-                  <TrendingUp className="w-5 h-5" />
-                  Live Revenue Distribution
-                </h2>
-              </div>
-              <div className="p-6 flex flex-col justify-center items-center h-full min-h-[300px]">
-                <div className="relative w-48 h-48 mb-6">
-                  <svg className="w-full h-full transform -rotate-90">
-                    <circle
-                      cx="96"
-                      cy="96"
-                      r="80"
-                      stroke="currentColor"
-                      strokeWidth="20"
-                      fill="transparent"
-                      className="text-neutral-950"
-                    />
-                    {totalEarnings > 0 && (
-                      <circle
-                        cx="96"
-                        cy="96"
-                        r="80"
-                        stroke="currentColor"
-                        strokeWidth="20"
-                        strokeDasharray={2 * Math.PI * 80}
-                        strokeDashoffset={2 * Math.PI * 80 * (1 - (grossMarginPercent / 100))}
-                        strokeLinecap="round"
-                        fill="transparent"
-                        className="text-indigo-500 transition-all duration-1000"
-                      />
-                    )}
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                    <span className="text-3xl font-black text-white font-mono">{grossMarginPercent}%</span>
-                    <span className="text-[10px] text-neutral-500 uppercase font-bold">Gross Margin</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-x-8 gap-y-2 w-full max-w-xs">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
-                    <span className="text-xs text-neutral-400">Direct Sales</span>
-                    <span className="ml-auto text-xs font-mono font-bold text-white">{grossMarginPercent}%</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-neutral-800 rounded-full"></div>
-                    <span className="text-xs text-neutral-400">Platform Fee</span>
-                    <span className="ml-auto text-xs font-mono font-bold text-white">{platformFeePercent}%</span>
-                  </div>
-                </div>
-                {totalEarnings === 0 && (
-                  <div className="mt-4 text-[10px] text-neutral-600 italic">Waiting for first live sale to distribute revenue...</div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-neutral-900/40 border border-neutral-800/60 rounded-3xl overflow-hidden shadow-sm">
-            <div className="px-8 py-6 border-b border-neutral-800/60 bg-neutral-900/50">
-              <h2 className="text-xl font-bold flex items-center gap-3">
-                <TrendingUp className="w-5 h-5 text-indigo-400" />
-                Track Performance
-              </h2>
-            </div>
-            
-            {state.beats.length === 0 ? (
-              <div className="p-16 text-center text-neutral-500">
-                <Music className="w-12 h-12 mx-auto text-neutral-700 mb-4" />
-                <p className="text-sm font-medium">No beats uploaded yet.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="bg-neutral-950/40 text-neutral-400 text-xs font-bold uppercase tracking-widest">
-                      <th className="px-8 py-5">Track</th>
-                      <th className="px-6 py-5 text-center">Plays</th>
-                      <th className="px-6 py-5 text-center">Likes</th>
-                      <th className="px-6 py-5 text-center">Dislikes</th>
-                      <th className="px-6 py-5 text-center">Shares</th>
-                      <th className="px-6 py-5 text-center">Downloads</th>
-                      <th className="px-6 py-5 text-center">Earnings</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-800/60">
-                    {state.beats.map((beat, idx) => (
-                      <tr key={beat.id ? `${beat.id}-${idx}` : idx} className="hover:bg-neutral-800/30 transition-colors">
-                        <td className="px-8 py-5">
-                          <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 rounded-xl bg-neutral-800 overflow-hidden shadow-inner flex-shrink-0 border border-neutral-700">
-                              {beat.coverArtUrl ? (
-                                <img src={beat.coverArtUrl} alt={beat.title} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-neutral-500"><Music size={20} /></div>
-                              )}
-                            </div>
-                            <div>
-                              <div className="font-bold text-white text-base">{beat.title}</div>
-                              <div className="text-xs text-neutral-400 uppercase tracking-widest font-bold mt-0.5">{beat.producer}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-5 text-center font-mono font-bold text-indigo-400 text-sm">{beat.plays || 0}</td>
-                        <td className="px-6 py-5 text-center font-mono font-bold text-emerald-400 text-sm">{beat.likes || 0}</td>
-                        <td className="px-6 py-5 text-center font-mono font-bold text-red-400 text-sm">{beat.dislikes || 0}</td>
-                        <td className="px-6 py-5 text-center font-mono font-bold text-blue-400 text-sm">{beat.shares || 0}</td>
-                        <td className="px-6 py-5 text-center font-mono font-bold text-purple-400 text-sm">{beat.downloads || 0}</td>
-                        <td className="px-6 py-5 text-center font-mono font-bold text-emerald-300 text-sm">${(beat.earnings || 0).toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        ) : activeTab === 'subscribers' ? (
-        <div className="space-y-6 animate-in fade-in duration-300">
-          {/* Header Row */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-neutral-900 border border-neutral-800 p-4 rounded-xl gap-4">
-            <div>
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Users className="w-5 h-5 text-indigo-400" />
-                Subscriber Analytics
-              </h2>
-              <p className="text-xs text-neutral-400 mt-1">Real-time newsletter metrics & artist databases.</p>
-            </div>
-            
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search artists..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-neutral-950 border border-neutral-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-64"
-              />
-            </div>
-          </div>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 relative overflow-hidden shadow-md">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-2xl -mr-5 -mt-5"></div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-neutral-400 font-medium text-sm">Total Subscribers</span>
-                <Users className="w-5 h-5 text-indigo-400" />
-              </div>
-              <div className="text-3xl font-extrabold text-white font-mono">{subscribers.length}</div>
-              <p className="text-[10px] text-neutral-500 mt-1">Rappers stage names registered</p>
-            </div>
-
-            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 relative overflow-hidden shadow-md">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl -mr-5 -mt-5"></div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-neutral-400 font-medium text-sm">Notification Opt-Ins</span>
-                <Bell className="w-5 h-5 text-amber-400" />
-              </div>
-              <div className="text-3xl font-extrabold text-white font-mono animate-in zoom-in">
-                {subscribers.filter(s => s.notifyOnBeatDrop).length}
-              </div>
-              <p className="text-[10px] text-neutral-500 mt-1">
-                {subscribers.length > 0 
-                  ? `${Math.round((subscribers.filter(s => s.notifyOnBeatDrop).length / subscribers.length) * 100)}% active notify rate`
-                  : '0% notify rate'}
-              </p>
-            </div>
-
-            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 relative overflow-hidden shadow-md">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl -mr-5 -mt-5"></div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-neutral-400 font-medium text-sm">Automated Mailings</span>
-                <Mail className="w-5 h-5 text-emerald-400" />
-              </div>
-              <div className="text-3xl font-extrabold text-white font-mono">
-                {subscribers.length + (notifications.length * subscribers.filter(s => s.notifyOnBeatDrop).length)}
-              </div>
-              <p className="text-[10px] text-neutral-500 mt-1">Welcome & broadcast dispatches</p>
-            </div>
-          </div>
-
-          {/* Main Grid: Roster & Log */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-neutral-900/40 border border-neutral-800/60 rounded-3xl overflow-hidden shadow-sm flex flex-col">
-              <div className="px-8 py-6 border-b border-neutral-800/60 bg-neutral-900/50 flex justify-between items-center">
-                <h3 className="font-bold text-white flex items-center gap-3 text-lg">
-                  <Mail className="w-5 h-5 text-indigo-400" />
-                  Artist VIP Roster ({filteredSubscribers.length})
-                </h3>
+                ))}
               </div>
 
-              {subscribers.length === 0 ? (
-                <div className="p-16 text-center text-neutral-500">
-                  <Mail className="w-12 h-12 mx-auto text-neutral-700 mb-4" />
-                  <p className="text-sm font-medium italic">No subscribers registered yet.</p>
-                </div>
-              ) : filteredSubscribers.length === 0 ? (
-                <div className="p-16 text-center text-neutral-500">
-                  <p className="text-sm font-medium italic">No matching subscribers found.</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-neutral-950/40 text-neutral-400 text-xs font-bold uppercase tracking-widest border-b border-neutral-800/60">
-                        <th className="px-8 py-5">Artist Stage Name</th>
-                        <th className="px-8 py-5">Email Address</th>
-                        <th className="px-8 py-5 text-center">Beat Alerts</th>
-                        <th className="px-8 py-5 text-right">Subscribed At</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-neutral-800/60">
-                      {filteredSubscribers.map((sub, idx) => (
-                        <tr key={idx} className="hover:bg-neutral-800/30 transition-colors text-sm text-white">
-                          <td className="px-8 py-5 font-bold">{sub.name}</td>
-                          <td className="px-8 py-5 text-neutral-400 font-mono">{sub.email}</td>
-                          <td className="px-8 py-5 text-center">
-                            {sub.notifyOnBeatDrop ? (
-                              <span className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full font-bold text-xs uppercase tracking-widest">
-                                <Bell className="w-3 h-3" /> Opted In
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-2 px-3 py-1 bg-neutral-800/50 text-neutral-500 rounded-full text-xs uppercase tracking-widest">
-                                Off
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-8 py-5 text-right text-neutral-500 font-mono text-xs">
-                            {new Date(sub.subscribedAt).toLocaleString()}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            {/* Right Column: Sent Notifications Logs */}
-            <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden flex flex-col shadow-lg">
-              <div className="px-5 py-4 border-b border-neutral-800 bg-neutral-950/25">
-                <h3 className="font-bold text-white flex items-center gap-2 text-sm md:text-base">
-                  <Send className="w-4.5 h-4.5 text-indigo-400" />
-                  Broadcast Log
-                </h3>
-              </div>
-              <div className="p-4 flex-1 overflow-y-auto space-y-3.5 max-h-[450px]">
-                {notifications.length === 0 ? (
-                  <div className="p-8 text-center text-neutral-500 text-xs italic">
-                    No beat drop alerts broadcasted yet.<br/>Upload a new beat to trigger live broadcasts!
+              <div className="space-y-3">
+                {notifications.filter(n => notifFilter === 'ALL' || n.type === notifFilter).length === 0 ? (
+                  <div className="text-center py-16 bg-neutral-950/50 border border-neutral-900 rounded-2xl">
+                    <Bell className="w-8 h-8 text-neutral-600 mx-auto mb-3 opacity-40" />
+                    <p className="text-sm font-bold text-neutral-400">No notifications in this view.</p>
+                    <p className="text-xs text-neutral-600 mt-1">Real events will automatically log here.</p>
                   </div>
                 ) : (
-                  notifications.map((notif) => (
-                    <div key={notif.id} className="bg-neutral-950/50 border border-neutral-800/80 rounded-lg p-3.5 text-xs">
-                      <div className="flex items-center justify-between gap-2 border-b border-neutral-900 pb-2 mb-2">
-                        <span className="font-bold text-neutral-200">Beat Alert Broadcasted</span>
-                        <span className="text-[10px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-1.5 py-0.5 rounded font-mono font-bold">SENT</span>
+                  notifications
+                    .filter(n => notifFilter === 'ALL' || n.type === notifFilter)
+                    .map(notif => (
+                      <div 
+                        key={notif.id} 
+                        className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                          notif.read 
+                            ? 'bg-neutral-950/80 border-neutral-900/80 opacity-70 hover:opacity-100' 
+                            : 'bg-neutral-900 border-neutral-800 hover:border-neutral-700 shadow-md'
+                        }`}
+                        onClick={() => {
+                           if (!notif.read) {
+                              updateDoc(doc(db, 'notifications', notif.id), { read: true });
+                           }
+                           if (notif.url) {
+                              const targetTab = notif.url.replace('/admin/', '').replace('/admin', 'dashboard');
+                              if (targetTab) {
+                                setActiveTab(targetTab as any);
+                              }
+                           }
+                        }}
+                      >
+                        <div className="flex items-start gap-4">
+                           <div className="w-10 h-10 rounded-xl bg-neutral-950 border border-neutral-800 flex items-center justify-center shrink-0">
+                             {notif.type === 'SALE' && <DollarSign className="w-5 h-5 text-emerald-400" />}
+                             {notif.type === 'MILESTONE' && <Award className="w-5 h-5 text-amber-400" />}
+                             {notif.type === 'DOWNLOAD' && <Download className="w-5 h-5 text-sky-400" />}
+                             {notif.type === 'TRENDING' && <TrendingUp className="w-5 h-5 text-fuchsia-400" />}
+                             {notif.type === 'SUBSCRIBER' && <Mail className="w-5 h-5 text-indigo-400" />}
+                             {!['SALE', 'MILESTONE', 'DOWNLOAD', 'TRENDING', 'SUBSCRIBER'].includes(notif.type) && <Bell className="w-5 h-5 text-indigo-400" />}
+                           </div>
+                           <div className="flex-1">
+                             <div className="flex justify-between items-start">
+                               <h4 className={`text-sm font-bold ${notif.read ? 'text-neutral-300' : 'text-white'}`}>{notif.title}</h4>
+                               <span className="text-[10px] text-neutral-500 font-mono">
+                                 {notif.timestamp ? new Date(notif.timestamp).toLocaleString() : ''}
+                               </span>
+                             </div>
+                             <p className="text-sm text-neutral-400 mt-1 whitespace-pre-wrap">{notif.message}</p>
+                           </div>
+                           {!notif.read && <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 mt-2 shrink-0"></div>}
+                        </div>
                       </div>
-                      <p className="font-bold text-white mb-1">{notif.title}</p>
-                      <p className="text-neutral-400 leading-normal mb-2 text-[11px]">{notif.body}</p>
-                      <div className="flex justify-between items-center text-[10px] text-neutral-500 font-mono">
-                        <span>Receivers: {subscribers.filter(s => s.notifyOnBeatDrop).length} artists</span>
-                        <span>{new Date(notif.sentAt).toLocaleString()}</span>
-                      </div>
-                    </div>
-                  ))
+                    ))
                 )}
               </div>
             </div>
-          </div>
+          )}
+
+          {/* SETTINGS TAB */}
+          {activeTab === 'settings' && (
+            <div className="space-y-12">
+              <div>
+                <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Settings & Configuration</h1>
+                <p className="text-neutral-400">Manage system settings, push notifications, and marketing.</p>
+              </div>
+              
+              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+                <h2 className="text-xl font-bold text-white mb-6">Push Alerts</h2>
+                <PushAlertsModule />
+              </div>
+
+              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+                <h2 className="text-xl font-bold text-white mb-6">Publishing Admin</h2>
+                <PublishingModule />
+              </div>
+
+              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+                <h2 className="text-xl font-bold text-white mb-6">YouTube Integrations</h2>
+                <YouTubeManagerModule />
+              </div>
+              
+              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+                <h2 className="text-xl font-bold text-white mb-6">Video Ad Engine</h2>
+                <VideoAdMaker />
+              </div>
+            </div>
+          )}
+
         </div>
-      ) : (
-        <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-6">
-          <Uploader />
-        </div>
-      )}
+      </div>
     </div>
   );
 }

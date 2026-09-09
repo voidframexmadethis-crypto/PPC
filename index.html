@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
     <!-- Basic -->
-    <title>{BEAT_TITLE}</title>
+    <title>NightRunna | Beat Store</title>
     <meta name="description" content="{BEAT_KEYWORDS_OR_SHORT_DESCRIPTION}" />
 
     <!-- Open Graph (used by Facebook, LinkedIn, etc.) -->
@@ -25,6 +25,12 @@
 
     <!-- Theme color for mobile browser bars -->
     <meta name="theme-color" content="#0a0a0a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="NightRunna" />
+    <link rel="apple-touch-icon" href="/pwa-192x192.png" />
+    <link rel="icon" type="image/png" href="/pwa-192x192.png" />
 
     <!-- ⚡ THE INSTANT SPEED SYNC CONTROLLER ⚡ -->
     <script>
@@ -46,7 +52,7 @@
         if (uiSpecs) uiSpecs.innerText = newSpecs;
 
         // 2. Instantly update checkout url text block
-        const paypalUser = localStorage.getItem('KRYPSIDE_PERSONAL_PAYPAL') || "YOUR_PAYPAL_USERNAME"; 
+        const paypalUser = localStorage.getItem('NIGHTRUNNA_PERSONAL_PAYPAL') || "YOUR_PAYPAL_USERNAME"; 
         const uiCheckoutBtn = document.getElementById('ui-checkout-btn');
         if (uiCheckoutBtn) {
           const cleanPrice = parseFloat(newPrice || 0).toFixed(2);

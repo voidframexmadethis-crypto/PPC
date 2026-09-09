@@ -91,6 +91,7 @@ export interface Beat {
   watermarkedAudioUrl?: string; // Watermarked version for preview
   visibility: 'Public' | 'Private' | 'Unlisted';
   trackType: 'Beat' | 'Chorus' | 'Song' | 'Top Line' | 'Vocals';
+  waveformData?: number[];
   licenses: {
     mp3Lease: { enabled: boolean; price: number };
     wavLease: { enabled: boolean; price: number };
@@ -162,6 +163,23 @@ export interface Analytics {
   downloads: number;
   totalEarnings?: number;
   platformFees?: number;
+}
+
+export interface Achievement {
+  id: string; // Document ID: `${beatId}_${milestone}`
+  plaqueId: string; // Clean public ID: e.g. NR-100-a8f9c1b2, NR-1M-e4d3c2b1
+  beatId: string;
+  beatTitle: string;
+  producer: string;
+  milestone: number; // e.g. 100, 500, 1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000
+  milestoneLabel: string; // e.g. "100 PLAYS", "1 MILLION PLAYS"
+  requiredPlays: number;
+  actualPlaysWhenUnlocked: number;
+  coverArtUrl: string;
+  earnedDate: string; // ISO date string or formatted date
+  earnedTimestamp: number;
+  verificationStatus: 'VERIFIED';
+  createdAt?: any;
 }
 
 export interface StoreState {

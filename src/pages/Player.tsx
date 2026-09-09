@@ -30,7 +30,7 @@ import { filterHumanBeats, isAIPlaceholderBeat, downloadAudioFile } from '../lib
 
 export default function Player() {
   const { id, track } = useParams<{ id?: string; track?: string }>();
-  const { state, updateBeat, removeBeat, incrementAnalytics } = useStore();
+  const { state, updateBeat, removeBeat, incrementAnalytics, recordAnalyticsEvent } = useStore();
   const { currentTrack, isPlaying, currentTime, duration, playTrack, togglePlay: toggleGlobalPlay, seek } = useAudioPlayer();
   
   const allBeats = filterHumanBeats(state.beats);
@@ -137,6 +137,8 @@ export default function Player() {
       if (index !== -1) {
         setCurrentBeatIndex(index);
         const matchedBeat = allBeats[index];
+        if (matchedBeat) recordAnalyticsEvent('VIEW', matchedBeat.id);
+        
         if (matchedBeat && currentTrack?.id !== matchedBeat.id) {
           playTrack(matchedBeat);
         }
@@ -150,7 +152,7 @@ export default function Player() {
   const currentBeat = allBeats[currentBeatIndex] || allBeats[0] || {
     id: 'empty',
     title: 'No Human Beats Available',
-    producer: 'Krypside',
+    producer: 'NightRunna',
     bpm: 120,
     key: 'C minor',
     price: 0,
@@ -165,7 +167,7 @@ export default function Player() {
   useEffect(() => {
     if (currentBeat) {
       setBeatPrice(Number(currentBeat.price).toFixed(2));
-      const likedBeats = JSON.parse(localStorage.getItem('KRYPSIDE_LIKED_BEATS') || '[]');
+      const likedBeats = JSON.parse(localStorage.getItem('NIGHTRUNNA_LIKED_BEATS') || '[]');
       setLiked(likedBeats.includes(currentBeat.id));
     }
   }, [currentBeat]);
@@ -253,7 +255,7 @@ export default function Player() {
 
   const handleLike = (e: React.MouseEvent, beat: Beat) => {
     e.stopPropagation();
-    const likedBeats = JSON.parse(localStorage.getItem('KRYPSIDE_LIKED_BEATS') || '[]');
+    const likedBeats = JSON.parse(localStorage.getItem('NIGHTRUNNA_LIKED_BEATS') || '[]');
     let updated;
     if (likedBeats.includes(beat.id)) {
       updated = likedBeats.filter((id: string) => id !== beat.id);
@@ -264,7 +266,7 @@ export default function Player() {
       updateBeat(beat.id, { likes: (beat.likes || 0) + 1 });
       setLiked(true);
     }
-    localStorage.setItem('KRYPSIDE_LIKED_BEATS', JSON.stringify(updated));
+    localStorage.setItem('NIGHTRUNNA_LIKED_BEATS', JSON.stringify(updated));
   };
 
   function triggerDownload(beat: Beat, url?: string) {
@@ -282,9 +284,9 @@ export default function Player() {
     }
 
     // 🔒 THE DOWNLOAD GATE: Check for Social or Email Unlock
-    const isSubscribed = localStorage.getItem('KRYPSIDE_SUBSCRIBED') === 'true';
-    const isYTSubbed = localStorage.getItem('KRYPSIDE_YOUTUBE_SUBSCRIBED') === 'true';
-    const isTikTokFollowed = localStorage.getItem('KRYPSIDE_TIKTOK_FOLLOWED') === 'true';
+    const isSubscribed = localStorage.getItem('NIGHTRUNNA_SUBSCRIBED') === 'true';
+    const isYTSubbed = localStorage.getItem('NIGHTRUNNA_YOUTUBE_SUBSCRIBED') === 'true';
+    const isTikTokFollowed = localStorage.getItem('NIGHTRUNNA_TIKTOK_FOLLOWED') === 'true';
 
     if (isSubscribed || isYTSubbed || isTikTokFollowed) {
       triggerDownload(beat, url);
@@ -335,6 +337,7 @@ export default function Player() {
 
   const handlePurchaseSuccess = (beat: Beat) => {
     updateBeat(beat.id, { earnings: (beat.earnings || 0) + beat.price });
+    recordAnalyticsEvent('PURCHASE', beat.id, { price: beat.price });
     triggerDownload(beat);
   };
 

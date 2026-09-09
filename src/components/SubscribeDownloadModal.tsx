@@ -47,11 +47,11 @@ export default function SubscribeDownloadModal({ isOpen, onClose, beat, onSucces
         setStatus('success');
         setMessage(data.message);
         
-        localStorage.setItem('KRYPSIDE_SUBSCRIBED', 'true');
-        localStorage.setItem('KRYPSIDE_SUBSCRIBER_EMAIL', email.trim());
-        localStorage.setItem('KRYPSIDE_SUBSCRIBER_NAME', name.trim());
+        localStorage.setItem('NIGHTRUNNA_SUBSCRIBED', 'true');
+        localStorage.setItem('NIGHTRUNNA_SUBSCRIBER_EMAIL', email.trim());
+        localStorage.setItem('NIGHTRUNNA_SUBSCRIBER_NAME', name.trim());
         
-        window.dispatchEvent(new Event('KRYPSIDE_SUBSCRIBED_STATUS_CHANGED'));
+        window.dispatchEvent(new Event('NIGHTRUNNA_SUBSCRIBED_STATUS_CHANGED'));
 
         setTimeout(() => {
           onSuccess(beat);
@@ -70,11 +70,11 @@ export default function SubscribeDownloadModal({ isOpen, onClose, beat, onSucces
   const handleSocialUnlock = (platform: 'youtube' | 'tiktok') => {
     try {
       if (platform === 'youtube') {
-        localStorage.setItem('KRYPSIDE_YOUTUBE_SUBSCRIBED', 'true');
+        localStorage.setItem('NIGHTRUNNA_YOUTUBE_SUBSCRIBED', 'true');
       } else {
-        localStorage.setItem('KRYPSIDE_TIKTOK_FOLLOWED', 'true');
+        localStorage.setItem('NIGHTRUNNA_TIKTOK_FOLLOWED', 'true');
       }
-      window.dispatchEvent(new Event('KRYPSIDE_SUBSCRIBED_STATUS_CHANGED'));
+      window.dispatchEvent(new Event('NIGHTRUNNA_SUBSCRIBED_STATUS_CHANGED'));
       setStatus('success');
       setMessage(`✓ ${platform.toUpperCase()} connection verified. Unlocking master...`);
       playTrack(beat);

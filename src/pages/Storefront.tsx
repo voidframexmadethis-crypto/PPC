@@ -36,6 +36,7 @@ export default function Storefront() {
   const handlePurchaseSuccess = (beat: Beat) => {
     updateBeat(beat.id, { purchases: (beat.purchases || 0) + 1, earnings: (beat.earnings || 0) + beat.price });
     incrementAnalytics('totalEarnings', beat.price);
+    recordAnalyticsEvent('PURCHASE', beat.id, { price: beat.price });
     if (beat.audioUrl) {
       downloadAudioFile(beat.audioUrl, beat.title);
     }
@@ -43,9 +44,9 @@ export default function Storefront() {
 
   const handleFreeDownload = (beat: Beat) => {
     handleTogglePlay(beat);
-    const isSubscribed = localStorage.getItem('KRYPSIDE_SUBSCRIBED') === 'true';
-    const isYTSubbed = localStorage.getItem('KRYPSIDE_YOUTUBE_SUBSCRIBED') === 'true';
-    const isTikTokFollowed = localStorage.getItem('KRYPSIDE_TIKTOK_FOLLOWED') === 'true';
+    const isSubscribed = localStorage.getItem('NIGHTRUNNA_SUBSCRIBED') === 'true';
+    const isYTSubbed = localStorage.getItem('NIGHTRUNNA_YOUTUBE_SUBSCRIBED') === 'true';
+    const isTikTokFollowed = localStorage.getItem('NIGHTRUNNA_TIKTOK_FOLLOWED') === 'true';
 
     if (isSubscribed || isYTSubbed || isTikTokFollowed) {
       triggerDownload(beat);

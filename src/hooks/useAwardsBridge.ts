@@ -1,4 +1,4 @@
-// 📡 KRYPSIDE SYSTEMS // INVISIBLE AWARDS HANDSHAKE EVENT BRIDGE
+// 📡 NIGHTRUNNA SYSTEMS // INVISIBLE AWARDS HANDSHAKE EVENT BRIDGE
 import { useEffect } from 'react';
 
 export function useAwardsBridge(currentTrackTitle: string, isPlaying: boolean) {
@@ -24,7 +24,7 @@ export function useAwardsBridge(currentTrackTitle: string, isPlaying: boolean) {
       .then(data => {
         // Automatically captures verification codes securely behind the scenes with zero frontend alerts
         if (data.success && data.status === "MULTI_API_HANDSHAKE_VERIFIED") {
-          console.log(`[KRYPSIDE SYSTEMS] Milestone Crossed: Tier ${data.award_level_tier} locked into memory cache.`);
+          console.log(`[NIGHTRUNNA SYSTEMS] Milestone Crossed: Tier ${data.award_level_tier} locked into memory cache.`);
         }
       })
       .catch(() => {

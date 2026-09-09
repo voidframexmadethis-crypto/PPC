@@ -1,3 +1,4 @@
+import webpush from 'web-push';
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
@@ -16,13 +17,19 @@ import { Readable } from 'stream';
 console.log('Initializing Firebase Admin...');
 try {
   if (!getApps().length) {
-    initializeApp();
+    const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
+    if (fs.existsSync(configPath)) {
+       const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+       initializeApp({ projectId: config.projectId });
+    } else {
+       initializeApp();
+    }
   }
   console.log('Firebase Admin initialized.');
 } catch (e) {
   console.error('Failed to initialize Firebase Admin:', e);
 }
-const db = getFirestore();
+// const db = getFirestore(); // Removed due to lack of service account ADC permissions in environment
 const auth = getAuth();
 
 // 📂 LOCAL STORAGE SETUP for Smart Uploader:
@@ -118,6 +125,81 @@ function saveSubscribersData() {
 }
 
 export const app = express();
+
+let VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
+let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+const VAPID_FILE = path.join(process.cwd(), 'vapid_keys.json');
+
+if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+  if (fs.existsSync(VAPID_FILE)) {
+    const keys = JSON.parse(fs.readFileSync(VAPID_FILE, 'utf8'));
+    VAPID_PUBLIC_KEY = keys.publicKey;
+    VAPID_PRIVATE_KEY = keys.privateKey;
+  } else {
+    const keys = webpush.generateVAPIDKeys();
+    VAPID_PUBLIC_KEY = keys.publicKey;
+    VAPID_PRIVATE_KEY = keys.privateKey;
+    fs.writeFileSync(VAPID_FILE, JSON.stringify(keys));
+  }
+}
+
+webpush.setVapidDetails(
+  'mailto:admin@nightrunna.com',
+  VAPID_PUBLIC_KEY,
+  VAPID_PRIVATE_KEY
+);
+
+let adminPushSubscriptions: any[] = [];
+const SUBS_FILE = path.join(process.cwd(), 'push_subs.json');
+if (fs.existsSync(SUBS_FILE)) {
+  adminPushSubscriptions = JSON.parse(fs.readFileSync(SUBS_FILE, 'utf8'));
+}
+
+app.get('/api/push/vapid-public-key', (req, res) => {
+  res.json({ publicKey: VAPID_PUBLIC_KEY });
+});
+
+app.post('/api/push/subscribe', express.json(), (req, res) => {
+  const subscription = req.body;
+  if (!adminPushSubscriptions.find(s => s.endpoint === subscription.endpoint)) {
+    adminPushSubscriptions.push(subscription);
+    fs.writeFileSync(SUBS_FILE, JSON.stringify(adminPushSubscriptions, null, 2));
+  }
+  res.json({ success: true });
+});
+
+app.post('/api/push/unsubscribe', express.json(), (req, res) => {
+  const subscription = req.body;
+  adminPushSubscriptions = adminPushSubscriptions.filter(s => s.endpoint !== subscription.endpoint);
+  fs.writeFileSync(SUBS_FILE, JSON.stringify(adminPushSubscriptions, null, 2));
+  res.json({ success: true });
+});
+
+app.post('/api/push/notify', express.json(), async (req, res) => {
+  const { title, body, url, type } = req.body;
+  
+  // Throttle logic or filtering could be added here based on type, but for now we just broadcast
+  const payload = JSON.stringify({
+    title,
+    body,
+    url: url || '/admin',
+    type
+  });
+
+  const promises = adminPushSubscriptions.map(sub => 
+    webpush.sendNotification(sub, payload).catch(err => {
+      console.error("Push notification failed, might be unsubscribed:", err);
+      if (err.statusCode === 410 || err.statusCode === 404) {
+        adminPushSubscriptions = adminPushSubscriptions.filter(s => s.endpoint !== sub.endpoint);
+        fs.writeFileSync(SUBS_FILE, JSON.stringify(adminPushSubscriptions, null, 2));
+      }
+    })
+  );
+  
+  await Promise.all(promises);
+  res.json({ success: true });
+});
+
 
 async function startServer() {
   const PORT = 3000;
@@ -451,9 +533,9 @@ async function startServer() {
   });
 
   // 📂 FETCH PATH: Allows your enterprise to read live tracks and stream counters out of sight
-  app.get('/api/krypside', (req, res) => {
+  app.get('/api/nightrunna', (req, res) => {
     res.status(200).json({
-      brand: "KRYPSIDE_ENTERPRISE_GROUP",
+      brand: "NIGHTRUNNA_ENTERPRISE_GROUP",
       personal_paypal_status: "ROUTING_ACTIVE_READY",
       analytics: {
         total_platform_streams: GLOBAL_STREAM_METRICS_COUNTER,
@@ -464,17 +546,17 @@ async function startServer() {
   });
 
   // 🚀 DISPATCH PATH: Intercepts actions natively and handles personal payments with zero error traps
-  app.post('/api/krypside', (req, res) => {
+  app.post('/api/nightrunna', (req, res) => {
     const { action, title, bpm, artworkBase64, fileUrl, artistEmail, personalPaypalLink } = req.body;
 
     // 💳 PERSONAL PAYPAL HANDSHAKE OVERRIDE
     // Safely locks down your personal email or paypal.me link within the enterprise system data line
     if (action === 'VERIFY_PAYPAL_CONNECTION') {
-      const securePersonalWalletTarget = personalPaypalLink || "krypside@gmail.com";
+      const securePersonalWalletTarget = personalPaypalLink || "nightrunna@gmail.com";
       res.status(200).json({
         success: true,
         status: "PERSONAL_WALLET_EMBEDDED_SUCCESSFULLY",
-        tier: "KRYPSIDE_ENTERPRISE_MEMBERSHIP",
+        tier: "NIGHTRUNNA_ENTERPRISE_MEMBERSHIP",
         merchant_routing_destination: securePersonalWalletTarget
       });
       return;
@@ -495,7 +577,7 @@ async function startServer() {
     // 📂 STANDARD TRACK INGESTION HOOK
     const freshlyUploadedBeat = {
       id: `k_ent_${Date.now().toString()}`,
-      title: title ? title.toUpperCase() : 'KRYPSIDE PRODUCTION MASTER',
+      title: title ? title.toUpperCase() : 'NIGHTRUNNA PRODUCTION MASTER',
       bpm: Number(bpm) || 140,
       artworkBase64: artworkBase64 || 'https://unsplash.com',
       plays: 0,
@@ -533,21 +615,32 @@ async function startServer() {
         subscribersData.subscribers[existingIdx] = newSubscriber;
       } else {
         subscribersData.subscribers.push(newSubscriber);
+        
+        // Dispatch Push Alert to admin devices for new subscriber
+        const pushPayload = JSON.stringify({
+          title: '💌 NEW SUBSCRIBER',
+          body: 'A new listener subscribed to your store.',
+          url: '/admin/subscribers',
+          type: 'SUBSCRIBER'
+        });
+        adminPushSubscriptions.forEach(sub => {
+          webpush.sendNotification(sub, pushPayload).catch(() => {});
+        });
       }
 
       saveSubscribersData();
 
       // 📡 Automated email dispatch mock & real Google scripts route
       const producerMailPayload = {
-        to: "krypside@gmail.com",
-        subject: `⚡ KRYPSIDE SYSTEMS // NEW SUBSCRIBER: ${name.toUpperCase()}`,
-        body: `Yo KRYPSIDE,\n\nA new artist has subscribed to your music store newsletter!\n\nArtist Details:\n- Name: ${name}\n- Email: ${email}\n- Notify on Beat Drop: ${notifyOnBeatDrop ? 'YES' : 'NO'}\n- Subscribed at: ${new Date().toLocaleString()}\n\nLet's get it!\n- KRYPSIDE SYSTEMS // AUTOMATED MARKETING ENGINE`
+        to: "nightrunna@gmail.com",
+        subject: `⚡ NIGHTRUNNA SYSTEMS // NEW SUBSCRIBER: ${name.toUpperCase()}`,
+        body: `Yo NightRunna,\n\nA new artist has subscribed to your music store newsletter!\n\nArtist Details:\n- Name: ${name}\n- Email: ${email}\n- Notify on Beat Drop: ${notifyOnBeatDrop ? 'YES' : 'NO'}\n- Subscribed at: ${new Date().toLocaleString()}\n\nLet's get it!\n- NIGHTRUNNA SYSTEMS // AUTOMATED MARKETING ENGINE`
       };
 
       const welcomeMailPayload = {
         to: normalizedEmail,
-        subject: `🔥 Welcome to KRYPSIDE Audio Labs - Exclusive Beats Inside!`,
-        body: `Yo ${name},\n\nThanks for subscribing to KRYPSIDE. You're now on the VIP list to receive exclusive beat drops, discounts, and free lease downloads.\n\nYour automated free download access is active immediately. Use the 'Download' button on the website for any track with free downloads enabled!\n\nLet's make hits!\n- KRYPSIDE\nhttps://krypside.com`
+        subject: `🔥 Welcome to NightRunna Audio Labs - Exclusive Beats Inside!`,
+        body: `Yo ${name},\n\nThanks for subscribing to NightRunna. You're now on the VIP list to receive exclusive beat drops, discounts, and free lease downloads.\n\nYour automated free download access is active immediately. Use the 'Download' button on the website for any track with free downloads enabled!\n\nLet's make hits!\n- NightRunna\nhttps://nightrunna.com`
       };
 
       // Dispatches emails via mock endpoints (which safely fails to Google domain fallback if no real SMTP API is wired)
@@ -566,7 +659,7 @@ async function startServer() {
 
       return res.status(201).json({
         success: true,
-        message: `✓ Yo ${name}, you've been successfully subscribed! An automated welcome email was sent to ${normalizedEmail}, and Krypside has been notified.`,
+        message: `✓ Yo ${name}, you've been successfully subscribed! An automated welcome email was sent to ${normalizedEmail}, and NightRunna has been notified.`,
         subscriber: newSubscriber
       });
     } catch (err) {
@@ -595,7 +688,7 @@ async function startServer() {
       const newNotification = {
         id: `notif_${Date.now()}`,
         title: `🔥 BEAT DROP ALERT: "${beatTitle.toUpperCase()}"`,
-        body: `New banger alert! Krypside just uploaded "${beatTitle.toUpperCase()}" (${bpm || 140} BPM, Key: ${key || 'C minor'}). Head to the website to stream it or get a license now!`,
+        body: `New banger alert! NightRunna just uploaded "${beatTitle.toUpperCase()}" (${bpm || 140} BPM, Key: ${key || 'C minor'}). Head to the website to stream it or get a license now!`,
         sentAt: new Date().toISOString(),
         beatTitle: beatTitle
       };
@@ -607,124 +700,8 @@ async function startServer() {
       await Promise.all(activeSubscribers.map(sub => {
         const payload = {
           to: sub.email,
-          subject: `🔔 NEW KRYPSIDE BEAT DROP: "${beatTitle.toUpperCase()}"`,
-          body: `Yo ${sub.name},\n\nKRYPSIDE has just dropped a brand new beat: "${beatTitle.toUpperCase()}"!\n\nBeat Specifications:\n- Title: ${beatTitle}\n- Producer: ${producer || 'Krypside'}\n- BPM: ${bpm || 140}\n- Key: ${key || 'C minor'}\n\nListen to it now or download the lease from our store!\n\nBest,\nKRYPSIDE Audio Labs`
-        };
-        return fetch("https://google.com", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        }).catch(() => {});
-      }));
-
-      return res.status(201).json({
-        success: true,
-        message: `✓ Notification successfully broadcasted to ${activeSubscribers.length} subscribed artists!`,
-        notification: newNotification,
-        recipientCount: activeSubscribers.length
-      });
-    } catch (err) {
-      console.error("Beat drop notification error:", err);
-      return res.status(500).json({ success: false, error: "Internal server error." });
-    }
-  });
-  app.post('/api/subscribe', async (req, res) => {
-    try {
-      const { email, name, notifyOnBeatDrop } = req.body;
-      if (!email || !name) {
-        return res.status(400).json({ success: false, error: "Email and name are required." });
-      }
-
-      const normalizedEmail = email.toLowerCase().trim();
-      const existingIdx = subscribersData.subscribers.findIndex(s => s.email.toLowerCase().trim() === normalizedEmail);
-      
-      const newSubscriber = {
-        email: normalizedEmail,
-        name: name.trim(),
-        subscribedAt: new Date().toISOString(),
-        notifyOnBeatDrop: !!notifyOnBeatDrop
-      };
-
-      if (existingIdx !== -1) {
-        subscribersData.subscribers[existingIdx] = newSubscriber;
-      } else {
-        subscribersData.subscribers.push(newSubscriber);
-      }
-
-      saveSubscribersData();
-
-      // 📡 Automated email dispatch mock & real Google scripts route
-      const producerMailPayload = {
-        to: "krypside@gmail.com",
-        subject: `⚡ KRYPSIDE SYSTEMS // NEW SUBSCRIBER: ${name.toUpperCase()}`,
-        body: `Yo KRYPSIDE,\n\nA new artist has subscribed to your music store newsletter!\n\nArtist Details:\n- Name: ${name}\n- Email: ${email}\n- Notify on Beat Drop: ${notifyOnBeatDrop ? 'YES' : 'NO'}\n- Subscribed at: ${new Date().toLocaleString()}\n\nLet's get it!\n- KRYPSIDE SYSTEMS // AUTOMATED MARKETING ENGINE`
-      };
-
-      const welcomeMailPayload = {
-        to: normalizedEmail,
-        subject: `🔥 Welcome to KRYPSIDE Audio Labs - Exclusive Beats Inside!`,
-        body: `Yo ${name},\n\nThanks for subscribing to KRYPSIDE. You're now on the VIP list to receive exclusive beat drops, discounts, and free lease downloads.\n\nYour automated free download access is active immediately. Use the 'Download' button on the website for any track with free downloads enabled!\n\nLet's make hits!\n- KRYPSIDE\nhttps://krypside.com`
-      };
-
-      // Dispatches emails via mock endpoints (which safely fails to Google domain fallback if no real SMTP API is wired)
-      await Promise.all([
-        fetch("https://google.com", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(producerMailPayload)
-        }).catch(() => {}),
-        fetch("https://google.com", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(welcomeMailPayload)
-        }).catch(() => {})
-      ]);
-
-      return res.status(201).json({
-        success: true,
-        message: `✓ Yo ${name}, you've been successfully subscribed! An automated welcome email was sent to ${normalizedEmail}, and Krypside has been notified.`,
-        subscriber: newSubscriber
-      });
-    } catch (err) {
-      console.error("Subscription endpoint error:", err);
-      return res.status(500).json({ success: false, error: "Internal server error." });
-    }
-  });
-
-  app.get('/api/subscribers', (req, res) => {
-    return res.status(200).json({
-      success: true,
-      subscribers: subscribersData.subscribers,
-      notifications: subscribersData.notifications
-    });
-  });
-
-  app.post('/api/notify-beat-drop', async (req, res) => {
-    try {
-      const { beatTitle, producer, bpm, key, coverArtUrl } = req.body;
-      if (!beatTitle) {
-        return res.status(400).json({ success: false, error: "Beat title is required." });
-      }
-
-      const activeSubscribers = subscribersData.subscribers.filter(s => s.notifyOnBeatDrop);
-      
-      const newNotification = {
-        id: `notif_${Date.now()}`,
-        title: `🔥 BEAT DROP ALERT: "${beatTitle.toUpperCase()}"`,
-        body: `New banger alert! Krypside just uploaded "${beatTitle.toUpperCase()}" (${bpm || 140} BPM, Key: ${key || 'C minor'}). Head to the website to stream it or get a license now!`,
-        sentAt: new Date().toISOString(),
-        beatTitle: beatTitle
-      };
-
-      subscribersData.notifications.unshift(newNotification);
-      saveSubscribersData();
-
-      // Dispatch notifications in parallel to all opted-in subscribers
-      await Promise.all(activeSubscribers.map(sub => {
-        const payload = {
-          to: sub.email,
-          subject: `🔔 NEW KRYPSIDE BEAT DROP: "${beatTitle.toUpperCase()}"`,
-          body: `Yo ${sub.name},\n\nKRYPSIDE has just dropped a brand new beat: "${beatTitle.toUpperCase()}"!\n\nBeat Specifications:\n- Title: ${beatTitle}\n- Producer: ${producer || 'Krypside'}\n- BPM: ${bpm || 140}\n- Key: ${key || 'C minor'}\n\nListen to it now or download the lease from our store!\n\nBest,\nKRYPSIDE Audio Labs`
+          subject: `🔔 NEW NIGHTRUNNA BEAT DROP: "${beatTitle.toUpperCase()}"`,
+          body: `Yo ${sub.name},\n\nNightRunna has just dropped a brand new beat: "${beatTitle.toUpperCase()}"!\n\nBeat Specifications:\n- Title: ${beatTitle}\n- Producer: ${producer || 'NightRunna'}\n- BPM: ${bpm || 140}\n- Key: ${key || 'C minor'}\n\nListen to it now or download the lease from our store!\n\nBest,\nNightRunna Audio Labs`
         };
         return fetch("https://google.com", {
           method: "POST",
@@ -786,7 +763,7 @@ async function startServer() {
         success: true,
         id: found.id,
         title: found.title,
-        producer: found.producer || 'Krypside',
+        producer: found.producer || 'NightRunna',
         bpm: found.bpm || 120,
         key: found.key || 'C minor',
         price: found.price || 30,
@@ -799,7 +776,7 @@ async function startServer() {
       success: true,
       id: beatId,
       title: `Shared Beat (${beatId})`,
-      producer: 'Krypside',
+      producer: 'NightRunna',
       bpm: 119,
       key: 'D# Minor',
       price: 35.00,
@@ -832,7 +809,7 @@ async function startServer() {
     archive.file(audioPath, { name: `${beat.title || 'beat'}.mp3` });
 
     // Dummy contract PDF for now
-    const contractContent = `FREE DOWNLOAD CONTRACT\n\nBeat: ${beat.title}\nProducer: ${beat.producer || 'Krypside'}\n\nTerms and conditions apply.`;
+    const contractContent = `FREE DOWNLOAD CONTRACT\n\nBeat: ${beat.title}\nProducer: ${beat.producer || 'NightRunna'}\n\nTerms and conditions apply.`;
     archive.append(contractContent, { name: `${beat.title || 'beat'}_Free_Download_Contract.pdf` });
 
     archive.finalize();
@@ -867,9 +844,9 @@ async function startServer() {
     try {
       const originalName = req.file.originalname;
       const cleanName = originalName.toLowerCase().replace(/[^a-z0-9.]+/g, '-').replace(/^-+|-+$/g, '');
-      const cleanTitle = cleanName.split('.')[0] || 'krypside-upload';
+      const cleanTitle = cleanName.split('.')[0] || 'nightrunna-upload';
       const uniqueSuffix = Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 5);
-      const iaItemId = `krypside-beat-${cleanTitle}-${uniqueSuffix}`.substring(0, 80);
+      const iaItemId = `nightrunna-beat-${cleanTitle}-${uniqueSuffix}`.substring(0, 80);
       const iaEndpoint = `https://s3.us.archive.org/${iaItemId}/${cleanName}`;
       const permanentUrl = `https://archive.org/download/${iaItemId}/${cleanName}`;
 
@@ -883,8 +860,8 @@ async function startServer() {
           'Authorization': `LOW ${iaAccessKey}:${iaSecretKey}`,
           'x-archive-auto-make-bucket': '1',
           'x-archive-meta-mediatype': req.file.mimetype.startsWith('image/') ? 'images' : 'audio',
-          'x-archive-meta-title': `Krypside Beat - ${cleanTitle}`,
-          'x-archive-meta-creator': 'Krypside',
+          'x-archive-meta-title': `NightRunna Beat - ${cleanTitle}`,
+          'x-archive-meta-creator': 'NightRunna',
           'x-archive-meta-collection': 'opensource_audio',
           'Content-Type': req.file.mimetype
         },
@@ -952,11 +929,11 @@ async function startServer() {
       });
     }
 
-    const testItemId = `krypside-test-item-${Math.random().toString(36).substring(2, 9)}`;
+    const testItemId = `nightrunna-test-item-${Math.random().toString(36).substring(2, 9)}`;
     const filename = `test_upload_handshake.txt`;
     const endpoint = `https://s3.us.archive.org/${testItemId}/${filename}`;
     const publicDownloadUrl = `https://archive.org/download/${testItemId}/${filename}`;
-    const testContent = `KRYPSIDE INTEGRATION HANDSHAKE. Verified on: ${new Date().toISOString()}`;
+    const testContent = `NIGHTRUNNA INTEGRATION HANDSHAKE. Verified on: ${new Date().toISOString()}`;
 
     try {
       console.log(`[TEST] Direct uploading to IA bucket: ${testItemId}`);
@@ -966,7 +943,7 @@ async function startServer() {
           'Authorization': `LOW ${accessKey}:${secretKey}`,
           'x-archive-auto-make-bucket': '1',
           'x-archive-meta-mediatype': 'texts',
-          'x-archive-meta-title': 'Krypside Master Store Isolated Integration Test',
+          'x-archive-meta-title': 'NightRunna Master Store Isolated Integration Test',
           'x-archive-meta-collection': 'opensource',
           'Content-Type': 'text/plain'
         },
@@ -1054,12 +1031,18 @@ async function startServer() {
     }
 
     try {
-      await db.collection('analytics').add({
+      const analyticsFile = path.join(LOCAL_STORAGE_ROOT, 'analytics.json');
+      let events = [];
+      if (fs.existsSync(analyticsFile)) {
+        events = JSON.parse(fs.readFileSync(analyticsFile, 'utf8'));
+      }
+      events.push({
         eventType,
         trackId: trackId || null,
         visitorId,
-        timestamp: FieldValue.serverTimestamp()
+        timestamp: new Date().toISOString()
       });
+      fs.writeFileSync(analyticsFile, JSON.stringify(events, null, 2));
       res.json({ success: true });
     } catch (err) {
       console.error("Analytics event error:", err);
@@ -1070,9 +1053,11 @@ async function startServer() {
   // 📈 ADMIN ANALYTICS REPORT API
   app.get('/api/admin/analytics-report', verifyFirebaseAdmin, async (req, res) => {
     try {
-      const snapshot = await db.collection('analytics').get();
-      const events: any[] = [];
-      snapshot.forEach(doc => events.push(doc.data()));
+      const analyticsFile = path.join(LOCAL_STORAGE_ROOT, 'analytics.json');
+      let events: any[] = [];
+      if (fs.existsSync(analyticsFile)) {
+        events = JSON.parse(fs.readFileSync(analyticsFile, 'utf8'));
+      }
 
       const totalVisits = events.filter(e => e.eventType === 'VISIT').length;
       const uniqueVisitors = new Set(events.map(e => e.visitorId)).size;
@@ -1086,6 +1071,7 @@ async function startServer() {
         totalDownloads,
         totalShares,
         totalLikes,
+        events: events, // send raw events for time-series charting
         generatedAt: new Date().toISOString()
       });
     } catch (err) {
@@ -1113,7 +1099,7 @@ async function startServer() {
     const beat = ENTERPRISE_CATALOG_STORAGE.find(b => b.id === beatId);
     
     // Metadata fallback
-    const title = beat ? `${beat.title} by ${beat.producer || 'Krypside'}` : "Krypside | Beat Store";
+    const title = beat ? `${beat.title} by ${beat.producer || 'NightRunna'}` : "NightRunna | Beat Store";
     const desc = beat ? `Key: ${beat.key || 'Unknown'} | BPM: ${beat.bpm || 'Unknown'}` : "Pro Audio Loops & Instrumental Beats";
     const image = beat ? (beat.artworkBase64 || beat.coverArtUrl || "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&q=80") : "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&q=80";
     const url = `https://${req.get('host') || 'localhost'}${req.originalUrl}`;
@@ -1157,7 +1143,7 @@ async function startServer() {
     app.get('*', (req, res) => {
       let html = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8');
       
-      let beatTitle = "Krypside | Beat Store";
+      let beatTitle = "NightRunna | Beat Store";
       let beatDesc = "Pro Audio Loops & Instrumental Beats";
       let beatImage = "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&q=80";
       let beatUrl = `https://${req.get('host') || 'localhost'}${req.originalUrl}`;
@@ -1166,7 +1152,7 @@ async function startServer() {
         const beatId = req.path.split('/')[2];
         const beat = ENTERPRISE_CATALOG_STORAGE.find(b => b.id === beatId);
         if (beat) {
-          beatTitle = `${beat.title} by ${beat.producer || 'Krypside'}`;
+          beatTitle = `${beat.title} by ${beat.producer || 'NightRunna'}`;
           beatDesc = `Key: ${beat.key || 'Unknown'} | BPM: ${beat.bpm || 'Unknown'}`;
           beatImage = beat.artworkBase64 || beat.coverArtUrl || beatImage;
         }

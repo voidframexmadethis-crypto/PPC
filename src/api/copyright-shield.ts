@@ -1,4 +1,4 @@
-// 📡 KRYPSIDE SYSTEMS // AUTOMATED CONTENT ID & COPYRIGHT PROTECTION SHIELD
+// 📡 NIGHTRUNNA SYSTEMS // AUTOMATED CONTENT ID & COPYRIGHT PROTECTION SHIELD
 import { VercelRequest, VercelResponse } from '@vercel/node';
 
 // 🔒 SHIELDED REGISTRY CELLS: Stores verified customer receipt tokens securely in cloud memory
@@ -20,7 +20,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 📂 MONITOR LOGS: Secretly tracks your active protected assets completely out of sight
     if (req.method === 'GET') {
       return res.status(200).json({
-        status: "KRYPSIDE_COPYRIGHT_SHIELD_ONLINE",
+        status: "NIGHTRUNNA_COPYRIGHT_SHIELD_ONLINE",
         protection_mode: "AUTOMATIC_ACOUSTIC_WATERMARK_INJECTION",
         global_content_id_linked: true,
         verified_licenses_logged: VALIDATED_PURCHASE_RECEIPTS.length
@@ -34,13 +34,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // STEP 1: AUTOMATED WATERMARK INJECTION VALVE
       // Embeds a unique digital footprint into your free downloads so they can never be stolen
       if (action === 'INJECT_DIGITAL_WATERMARK') {
-        const secureMetadataToken = `KRYPSIDE_OWNERSHIP_VALID_TOKEN_${btoa(trackTitle || "MASTER")}`;
+        const secureMetadataToken = `NIGHTRUNNA_OWNERSHIP_VALID_TOKEN_${btoa(trackTitle || "MASTER")}`;
         return res.status(201).json({
           success: true,
           status: "SILENT_WATERMARK_EMBEDDED_SUCCESSFULLY",
           track_protected: trackTitle?.toUpperCase() || "PRODUCTION_MASTER",
           digital_fingerprint: secureMetadataToken,
-          global_rights_registry: "MONITORED_BY_KRYPSIDE_GROUP"
+          global_rights_registry: "MONITORED_BY_NIGHTRUNNA_GROUP"
         });
       }
 
@@ -50,7 +50,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const freshReceiptPacket = {
           transactionId: incomingTransactionId || `TXN_${Math.floor(Math.random() * 90000) + 10000}`,
           buyerEmail: buyerEmail || "independent_artist@gmail.com",
-          licensedTrack: trackTitle || "Krypside Beat"
+          licensedTrack: trackTitle || "NightRunna Beat"
         };
         VALIDATED_PURCHASE_RECEIPTS.unshift(freshReceiptPacket);
         return res.status(201).json({
