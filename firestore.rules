@@ -115,5 +115,27 @@ service cloud.firestore {
       allow read: if true; // Public access for Hall of Fame & verification
       allow write: if true; // Automated milestone unlock on real store events
     }
+
+    // Collection: Subscribers
+    match /subscribers/{subscriberId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isSignedIn();
+    }
+
+    // Collection: Mailing List Settings
+    match /mailing_list_settings/{settingsId} {
+      allow read: if true;
+      allow write: if isSignedIn() || request.auth != null;
+    }
+
+    // Collection: Email Campaigns & History
+    match /email_campaigns/{campaignId} {
+      allow read, write: if true;
+    }
+
+    match /email_logs/{logId} {
+      allow read, write: if true;
+    }
   }
 }

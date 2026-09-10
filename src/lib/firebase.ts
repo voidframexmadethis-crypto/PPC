@@ -9,7 +9,7 @@ const app = initializeApp(firebaseConfig);
 // FIX: Force long polling to bypass iframe blocks
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true
-} as any, firebaseConfig.firestoreDatabaseId);
+} as any, (firebaseConfig as any).firestoreDatabaseId);
 
 
 export const auth = getAuth(app);

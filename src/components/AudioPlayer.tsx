@@ -201,7 +201,7 @@ export default function AudioPlayer() {
             ) : (
               <button className="bg-white text-black text-xs font-bold px-4 py-2 rounded flex items-center gap-2 hover:bg-neutral-200 transition-colors whitespace-nowrap">
                 <ShoppingBag className="w-4 h-4" />
-                ${currentTrack.price.toFixed(2)}
+                ${(Number(currentTrack.price) || 29.99).toFixed(2)}
               </button>
             )}
           </div>
@@ -254,7 +254,7 @@ export default function AudioPlayer() {
             ) : (
               <button className="bg-white text-black text-[10px] sm:text-xs font-bold px-2.5 py-1.5 sm:px-3 sm:py-2 rounded flex items-center hover:bg-neutral-200 transition-colors whitespace-nowrap">
                 <ShoppingBag className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                ${currentTrack.price.toFixed(0)}
+                ${(Number(currentTrack.price) || 29.99).toFixed(0)}
               </button>
             )}
           </div>

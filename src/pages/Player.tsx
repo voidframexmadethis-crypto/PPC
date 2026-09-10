@@ -708,7 +708,7 @@ export default function Player() {
       {/* Booking Funnel Modal */}
       {bookingModalOpen && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-[999999] flex items-center justify-center font-sans">
-          <div className="bg-[#18181c] border-2 border-[#FFC439] rounded-2xl w-[440px] max-h-[90vh] overflow-y-auto p-[35px] text-white shadow-[0_10px_40px_rgba(0,0,0,0.8)] relative">
+          <div className="bg-[#18181c] border-2 border-[#FFC439] rounded-2xl w-[92%] max-w-[440px] max-h-[90vh] overflow-y-auto p-6 sm:p-[35px] text-white shadow-[0_10px_40px_rgba(0,0,0,0.8)] relative">
             {/* ==================== SCREEN A: THE PAY-PER-REQUEST RECHARGE GATE ==================== */}
             {bookingStep === 1 && (
               <div id="paywall-step" style={{ display: 'block' }}>
@@ -742,7 +742,7 @@ export default function Player() {
 
                   {/* Live PayPal Mount */}
                   <div id="paypal-smart-button-mount" style={{ marginBottom: '15px', position: 'relative', zIndex: 10 }}>
-                      <PayPalScriptProvider options={{ clientId: "test", currency: "USD" }}>
+                      <PayPalScriptProvider options={{ clientId: import.meta.env.VITE_PAYPAL_CLIENT_ID || "sb", currency: "USD" }}>
                           <PayPalButtons 
                               createOrder={(data, actions) => {
                                   return actions.order.create({

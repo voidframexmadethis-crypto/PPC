@@ -1830,7 +1830,7 @@ const BeatUploader = React.memo(() => {
                     <a 
                       id="ui-checkout-btn" 
                       href={(() => {
-                        const paypalUser = localStorage.getItem('NIGHTRUNNA_PERSONAL_PAYPAL') || state.profile.paypalEmail || "YOUR_PAYPAL_USERNAME";
+                        const paypalUser = localStorage.getItem('NIGHTRUNNA_PERSONAL_PAYPAL') || state.profile.paypalEmail || "nightrunna842@gmail.com";
                         const cleanPrice = parseFloat(formData.price as string || '30.00').toFixed(2);
                         if (paypalUser.includes('@')) {
                           return `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=${encodeURIComponent(paypalUser)}&amount=${cleanPrice}&currency_code=USD`;

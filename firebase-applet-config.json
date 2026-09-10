@@ -1,12 +1,11 @@
 {
-  "projectId": "project-92999b87-9b20-48f6-aa7",
-  "appId": "1:257395356193:web:4e67fbe3f42fb04455e960",
-  "apiKey": "AIzaSyCNUDp_Ob_y86p05Ze9txAY0YIs6p6WfgY",
-  "authDomain": "project-92999b87-9b20-48f6-aa7.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-krypside-f627fd77-1a66-44ac-bf03-c5fafd503477",
-  "storageBucket": "project-92999b87-9b20-48f6-aa7.firebasestorage.app",
-  "messagingSenderId": "257395356193",
+  "projectId": "rich-ensign-qghtt",
+  "appId": "1:492306407832:web:8f5f13ae81cc1665638bed",
+  "apiKey": "AIzaSyBwgW9Dn_9Ym45A9owK3GLIckE2BH1FonE",
+  "authDomain": "rich-ensign-qghtt.firebaseapp.com",
+  "storageBucket": "rich-ensign-qghtt.firebasestorage.app",
+  "messagingSenderId": "492306407832",
   "measurementId": "",
-  "oAuthClientId": "257395356193-nur8i36hse8dr1ump4a1tpaj5ehmaoq6.apps.googleusercontent.com",
+  "oAuthClientId": "492306407832-vsna7jdbfnv1tog0ie25pn5dfvekiu00.apps.googleusercontent.com",
   "recaptchaSiteKey": ""
 }

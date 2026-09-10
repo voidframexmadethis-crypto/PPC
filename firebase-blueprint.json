@@ -96,6 +96,43 @@
         "verificationStatus": { "type": "string", "enum": ["VERIFIED"] }
       },
       "required": ["plaqueId", "beatId", "milestone", "verificationStatus"]
+    },
+    "Subscriber": {
+      "title": "Subscriber",
+      "description": "A NightRunna mailing list subscriber record.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string", "maxLength": 120 },
+        "firstName": { "type": "string", "maxLength": 80 },
+        "status": { "type": "string", "enum": ["active", "unsubscribed"] },
+        "subscribedDate": { "type": "string", "format": "date-time" },
+        "subscribedTimestamp": { "type": "number" },
+        "source": { "type": "string", "maxLength": 100 },
+        "confirmationStatus": { "type": "string", "maxLength": 30 },
+        "unsubscribeStatus": { "type": "boolean" },
+        "lastEmailSent": { "type": "string", "maxLength": 100 },
+        "tags": { "type": "array", "items": { "type": "string", "maxLength": 50 } },
+        "preferences": { "type": "object" }
+      },
+      "required": ["email", "status", "subscribedDate"]
+    },
+    "MailingListSettings": {
+      "title": "Mailing List Settings",
+      "description": "Configurable settings for welcome emails and signup messages.",
+      "type": "object",
+      "properties": {
+        "welcomeSubject": { "type": "string", "maxLength": 200 },
+        "welcomeHeadline": { "type": "string", "maxLength": 200 },
+        "welcomeBody": { "type": "string", "maxLength": 5000 },
+        "welcomeFooter": { "type": "string", "maxLength": 1000 },
+        "welcomeCtaText": { "type": "string", "maxLength": 100 },
+        "welcomeCtaUrl": { "type": "string", "maxLength": 500 },
+        "senderDisplayName": { "type": "string", "maxLength": 100 },
+        "notificationEmail": { "type": "string", "maxLength": 100 },
+        "alreadySubscribedMsg": { "type": "string", "maxLength": 300 },
+        "newSubscriberSuccessMsg": { "type": "string", "maxLength": 300 }
+      }
     }
   },
   "firestore": {
@@ -122,6 +159,14 @@
     "/achievements/{achievementId}": {
       "schema": "Achievement",
       "description": "Collection of earned digital record plaques."
+    },
+    "/subscribers/{subscriberId}": {
+      "schema": "Subscriber",
+      "description": "Collection of mailing list subscribers."
+    },
+    "/mailing_list_settings/{settingsId}": {
+      "schema": "MailingListSettings",
+      "description": "Settings for welcome email and signup responses."
     }
   }
 }

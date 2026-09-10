@@ -357,7 +357,7 @@ export default function Home() {
       {bookingModalOpen && (
         <div id="booking-modal" style={{ display: 'flex', position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.92)', zIndex: 999999, justifyContent: 'center', alignItems: 'center', fontFamily: 'sans-serif' }}>
           
-          <div style={{ background: '#18181c', border: '2px solid #FFC439', padding: '35px', borderRadius: '16px', width: '440px', color: '#fff', boxShadow: '0 10px 40px rgba(0,0,0,0.8)', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: '#18181c', border: '2px solid #FFC439', padding: '24px', borderRadius: '16px', maxWidth: '440px', width: '92%', color: '#fff', boxShadow: '0 10px 40px rgba(0,0,0,0.8)', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
             
             {/* ==================== SCREEN A: THE PAY-PER-REQUEST RECHARGE GATE ==================== */}
             {bookingStep === 1 && (
@@ -392,7 +392,7 @@ export default function Home() {
 
                   {/* Live PayPal Mount */}
                   <div id="paypal-smart-button-mount" style={{ marginBottom: '15px', position: 'relative', zIndex: 10 }}>
-                      <PayPalScriptProvider options={{ clientId: "test", currency: "USD" }}>
+                      <PayPalScriptProvider options={{ clientId: import.meta.env.VITE_PAYPAL_CLIENT_ID || "sb", currency: "USD" }}>
                           <PayPalButtons 
                               createOrder={(data, actions) => {
                                   return actions.order.create({

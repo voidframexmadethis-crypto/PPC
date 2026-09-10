@@ -14,8 +14,25 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ beat, onClose, onS
   const [isCryptoSuccess, setIsCryptoSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  const [sellerPaypalEmail, setSellerPaypalEmail] = useState<string>(() => {
+    return localStorage.getItem('NIGHTRUNNA_PERSONAL_PAYPAL') || 'nightrunna842@gmail.com';
+  });
+
   const finalPrice = beat?.price || 67.00;
   const trackTitle = beat?.title || "Premium Instrumental Lease";
+
+  // Fetch verified seller payout settings from server
+  useEffect(() => {
+    fetch('/api/paypal/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.settings?.sellerPaypalEmail) {
+          setSellerPaypalEmail(data.settings.sellerPaypalEmail);
+          localStorage.setItem('NIGHTRUNNA_PERSONAL_PAYPAL', data.settings.sellerPaypalEmail);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Real-world crypto processing simulation used by top beat stores
   const handleLiveCryptoConnect = async () => {
@@ -51,10 +68,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ beat, onClose, onS
     let script = document.getElementById(scriptId) as HTMLScriptElement;
 
     if (!script) {
+      const paypalClientId = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'sb';
       script = document.createElement('script');
       script.id = scriptId;
-      // Connects directly to PayPal's secure live network
-      script.src = `https://www.paypal.com/sdk/js?client-id=sb&currency=USD`;
+      // Connects directly to PayPal's secure network (Production when VITE_PAYPAL_CLIENT_ID set, Sandbox when 'sb')
+      script.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(paypalClientId)}&currency=USD`;
       script.async = true;
       
       script.onload = () => setIsSdkLoaded(true);
@@ -73,15 +91,47 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ beat, onClose, onS
         style: { layout: 'vertical', color: 'gold', shape: 'pill', label: 'checkout' },
         createOrder: (_data: any, actions: any) => {
           return actions.order.create({
+            intent: 'CAPTURE',
             purchase_units: [{
-              description: `NightRunna Beat Track: ${trackTitle}`,
-              amount: { currency_code: 'USD', value: finalPrice.toString() }
+              description: `NightRunna Beat Lease: ${trackTitle}`,
+              amount: { currency_code: 'USD', value: finalPrice.toString() },
+              payee: {
+                email_address: sellerPaypalEmail || 'nightrunna842@gmail.com'
+              }
             }]
           });
         },
         onApprove: async (_data: any, actions: any) => {
-          return actions.order.capture().then((details: any) => {
-            alert(`✓ Payment cleared! Thank you ${details.payer.name.given_name}.`);
+          return actions.order.capture().then(async (details: any) => {
+            const payerGiven = details.payer?.name?.given_name || '';
+            const payerSurname = details.payer?.name?.surname || '';
+            const payerName = `${payerGiven} ${payerSurname}`.trim() || 'Valued Customer';
+            const payerEmail = details.payer?.email_address || 'buyer@nightrunna.com';
+            const txId = details.id || `TX-${Date.now()}`;
+
+            // Record Beat Order in backend & Firestore
+            try {
+              await fetch('/api/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  orderId: details.id,
+                  transactionId: txId,
+                  beatId: beat?.id || 'unknown_beat',
+                  beatTitle: trackTitle,
+                  amount: finalPrice,
+                  currency: 'USD',
+                  buyerName: payerName,
+                  buyerEmail: payerEmail,
+                  sellerPayoutAccount: sellerPaypalEmail || 'nightrunna842@gmail.com',
+                  status: 'COMPLETED'
+                })
+              });
+            } catch (oErr) {
+              console.warn('Order sync notice:', oErr);
+            }
+
+            alert(`✓ Payment cleared! Thank you ${payerName}. Funds routed directly to ${sellerPaypalEmail || 'nightrunna842@gmail.com'}.`);
             if (beat) onSuccess(beat);
             onClose();
           });
@@ -92,7 +142,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ beat, onClose, onS
         }
       }).render('#paypal-live-button-container');
     }
-  }, [isSdkLoaded, activeTab, finalPrice, trackTitle, onClose, beat, onSuccess]);
+  }, [isSdkLoaded, activeTab, finalPrice, trackTitle, onClose, beat, onSuccess, sellerPaypalEmail]);
 
   if (!beat) return null;
 

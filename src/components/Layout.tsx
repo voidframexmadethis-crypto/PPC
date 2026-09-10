@@ -235,11 +235,24 @@ export default function Layout() {
     }
     setSubStatus("loading");
     try {
+      // 1. Dispatch Formspree notification (Zero Credentials)
+      fetch("https://formspree.io/f/mbgrddkj", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: subEmail.trim(),
+          stageName: subName.trim() || "VIP Subscriber",
+          source: "Storefront VIP Newsletter Footer"
+        })
+      }).catch(err => console.warn("Formspree notification notice:", err));
+
+      // 2. Save subscriber directly into Firestore subscribers collection via API
       const res = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: subEmail.trim(),
+          stageName: subName.trim() || "VIP Subscriber",
           name: subName.trim(),
           notifyOnBeatDrop,
         }),

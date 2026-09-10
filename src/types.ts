@@ -182,6 +182,95 @@ export interface Achievement {
   createdAt?: any;
 }
 
+export interface MailingListSubscriber {
+  id: string;
+  email: string;
+  firstName?: string;
+  name?: string;
+  status: 'active' | 'unsubscribed';
+  subscribedDate: string;
+  subscribedTimestamp: number;
+  source?: string;
+  confirmationStatus?: string;
+  unsubscribeStatus?: boolean;
+  lastEmailSent?: string | null;
+  tags: string[];
+  preferences?: {
+    newBeats?: boolean;
+    freeDownloads?: boolean;
+    specialOffers?: boolean;
+    storeNews?: boolean;
+    exclusiveAnnouncements?: boolean;
+  };
+  notifyOnBeatDrop?: boolean;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
+export interface MailingListSettings {
+  welcomeSubject: string;
+  welcomeHeadline: string;
+  welcomeBody: string;
+  welcomeFooter: string;
+  welcomeCtaText: string;
+  welcomeCtaUrl: string;
+  senderDisplayName: string;
+  notificationEmail: string;
+  alreadySubscribedMsg: string;
+  newSubscriberSuccessMsg: string;
+  updatedAt?: string;
+}
+
+export interface EmailCampaign {
+  id: string;
+  name: string;
+  subject: string;
+  previewText?: string;
+  headline: string;
+  body: string;
+  imageUrl?: string;
+  beatId?: string;
+  ctaText?: string;
+  ctaUrl?: string;
+  footer?: string;
+  status: 'draft' | 'scheduled' | 'sent';
+  targetTag?: string;
+  scheduledAt?: string;
+  sentAt?: string;
+  attemptedCount?: number;
+  successCount?: number;
+  failedCount?: number;
+  unsubscribeCount?: number;
+  createdAt: string;
+}
+
+export interface EmailLog {
+  id: string;
+  campaignId?: string;
+  type: 'WELCOME' | 'CAMPAIGN' | 'BEAT_DROP' | 'TEST' | 'NOTIFICATION';
+  recipient: string;
+  subject: string;
+  status: 'DELIVERED' | 'FAILED' | 'TEST_SENT';
+  sentAt: string;
+  errorDetails?: string;
+}
+
+export interface PayPalOrder {
+  id: string;
+  orderId: string;
+  transactionId: string;
+  beatId: string;
+  beatTitle: string;
+  amount: number;
+  currency: string;
+  buyerName: string;
+  buyerEmail: string;
+  sellerPayoutAccount: string;
+  status: 'COMPLETED' | 'CAPTURED' | 'PENDING';
+  timestamp: string;
+  createdAt?: any;
+}
+
 export interface StoreState {
   profile: Profile;
   videos: YouTubeVideo[];

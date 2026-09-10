@@ -114,7 +114,7 @@ export default function EnterpriseMusicPlatform() {
     addLog(`📄 Sony Music Sync: Generated official registered ISWC [${generatedIswc}]`);
 
     // --- SECURE MERCHANT REDIRECT ---
-    const paypalUser = "nightrunna@gmail.com";
+    const paypalUser = localStorage.getItem('NIGHTRUNNA_PERSONAL_PAYPAL') || "nightrunna842@gmail.com";
     const amount = beat.price || 29.99;
     const checkoutUrl = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=${encodeURIComponent(paypalUser)}&item_name=${encodeURIComponent(beat.title || 'Beat License')}&amount=${amount}&currency_code=USD`;
     

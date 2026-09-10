@@ -13,6 +13,7 @@ import { PushAlertsModule, ISRCModule, YouTubeManagerModule, PublishingModule, V
 import { VideoAdMaker } from '../components/admin/VideoAdMaker';
 import { AnalyticsDashboard } from '../components/admin/AnalyticsDashboard';
 import { SubscriptionsModule } from '../components/admin/SubscriptionsModule';
+import { OrdersModule } from '../components/admin/OrdersModule';
 import { PlaqueStudio } from '../components/admin/PlaqueStudio';
 import { AdminAchievements } from '../components/admin/AdminAchievements';
 import { HallOfFame } from '../components/plaque/HallOfFame';
@@ -169,6 +170,7 @@ export default function Admin() {
           <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
             {[
               { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+              { id: 'subscribers', label: 'Subscribers', icon: Mail },
               { id: 'beats', label: 'Beats', icon: Music },
               { id: 'collections', label: 'Collections', icon: Library },
               { id: 'orders', label: 'Orders', icon: DollarSign },
@@ -331,9 +333,10 @@ export default function Admin() {
           {activeTab === 'orders' && (
             <div className="space-y-12">
               <div>
-                <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Orders & Subscriptions</h1>
-                <p className="text-neutral-400">View recent transactions and active subscriptions.</p>
+                <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Beat Sales & Orders</h1>
+                <p className="text-neutral-400">View real-time transactions, buyer details, and PayPal payout routing.</p>
               </div>
+              <OrdersModule />
               <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
                 <h2 className="text-xl font-bold text-white mb-6">Active Subscriptions</h2>
                 <SubscriptionsModule />
@@ -373,6 +376,11 @@ export default function Admin() {
               </div>
               <AnalyticsDashboard />
             </div>
+          )}
+
+          {/* SUBSCRIBERS TAB */}
+          {(activeTab === 'subscribers' || activeTab === 'subscriptions') && (
+            <SubscriptionsModule />
           )}
 
           {/* ACHIEVEMENTS TAB */}
@@ -509,9 +517,11 @@ export default function Admin() {
             <div className="space-y-12">
               <div>
                 <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Settings & Configuration</h1>
-                <p className="text-neutral-400">Manage system settings, push notifications, and marketing.</p>
+                <p className="text-neutral-400">Manage system settings, seller payout routing, push notifications, and marketing.</p>
               </div>
               
+              <OrdersModule hideTable={true} />
+
               <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
                 <h2 className="text-xl font-bold text-white mb-6">Push Alerts</h2>
                 <PushAlertsModule />

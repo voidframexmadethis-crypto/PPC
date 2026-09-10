@@ -32,11 +32,24 @@ export default function SubscribeDownloadModal({ isOpen, onClose, beat, onSucces
 
     setStatus('loading');
     try {
+      // 1. Dispatch Formspree notification (Zero Credentials)
+      fetch("https://formspree.io/f/mbgrddkj", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          stageName: name.trim() || "VIP Subscriber",
+          source: "Free Download Unlock Modal"
+        })
+      }).catch(err => console.warn("Formspree notification notice:", err));
+
+      // 2. Save subscriber directly into Firestore subscribers collection via API
       const res = await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: email.trim(),
+          stageName: name.trim() || "VIP Subscriber",
           name: name.trim(),
           notifyOnBeatDrop
         })
